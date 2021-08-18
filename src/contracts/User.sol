@@ -23,7 +23,10 @@ contract User {
         uint8 rate;
         string review;
         Role role; // role of the rater
+        uint256 time;
     }
+
+    mapping(address => uint8) public rentalIndexInRentalHistory;
 
     address public userAddress;
     string public username;
@@ -70,18 +73,6 @@ contract User {
         _;
     }
 
-    // function getUserAddress() public view returns (address) {
-    //     return userAddress;
-    // }
-
-    // function getUsername() public view returns (string memory) {
-    //     return username;
-    // }
-
-    // function getDeliveryAddress() public view returns (string memory) {
-    //     return deliveryAddress;
-    // }
-
     function setUsername(string memory _newUsername) public onlyUser {
         username = _newUsername;
         emit usernameChanged(msg.sender, _newUsername);
@@ -95,8 +86,8 @@ contract User {
         emit deliveryAddressChanged(msg.sender, _newDeliveryAddress);
     }
 
-    function setRentalHisotryHasRated(uint8 index) public {
-        RentalHistory storage history = rentalHistories[index];
+    function setRentalHisotryHasRated(uint8 _index) public {
+        RentalHistory storage history = rentalHistories[_index];
         history.hasRated = true;
     }
 
@@ -107,9 +98,6 @@ contract User {
         uint256 _start,
         uint256 _end
     ) public {
-        rentalHistoryCount++;
-        lendingCount++;
-
         RentalHistory memory history = RentalHistory({
             item: _item,
             rental: _rental,
@@ -119,7 +107,10 @@ contract User {
             end: _end
         });
 
+        lendingCount++;
         rentalHistories.push(history);
+        rentalIndexInRentalHistory[_item] = rentalHistoryCount;
+        rentalHistoryCount++;
     }
 
     // borrowing: user is renter
@@ -129,9 +120,6 @@ contract User {
         uint256 _start,
         uint256 _end
     ) public {
-        rentalHistoryCount++;
-        borrowingCount++;
-
         RentalHistory memory history = RentalHistory({
             item: _item,
             rental: _rental,
@@ -141,32 +129,36 @@ contract User {
             end: _end
         });
 
+        borrowingCount++;
         rentalHistories.push(history);
+        rentalIndexInRentalHistory[_item] = rentalHistoryCount;
+        rentalHistoryCount++;
     }
 
     function inputRating(
         address _item,
-        address _rater,
+        address _raterUserContract,
         uint8 _rate,
         string memory _review,
-        Role _role,
-        uint8 _index
+        Role _role // role of rater
     ) public restricted {
-        User rater = User(_rater);
-        rater.setRentalHisotryHasRated(_index);
+        User rater = User(_raterUserContract);
+        uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
+        rater.setRentalHisotryHasRated(rentalIndexOfRater);
 
         Rating memory newRating = Rating({
             item: _item,
             rate: _rate,
-            rater: _rater,
+            rater: rater.userAddress(),
             review: _review,
-            role: _role
+            role: _role,
+            time: block.timestamp
         });
 
         ratings.push(newRating);
         ratingCount++;
 
-        emit newRatingInput(_rater, _rate, ratingCount);
+        emit newRatingInput(rater.userAddress(), _rate, ratingCount);
     }
 
     function getRatingsSum() public view returns (uint256) {

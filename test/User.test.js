@@ -41,7 +41,7 @@ describe('User Contract', async () => {
   describe('Profile', async () => {
     it('should let owner to change his/her own username', async () => {
       let newUsername = 'newUsername'
-      const response = await user.setUsername(newUsername, {
+      const response = await user.changeUsername(newUsername, {
         from: userAddress,
       })
       expect(await user.username()).to.be.equal(newUsername)
@@ -54,7 +54,7 @@ describe('User Contract', async () => {
     it('should not let anyone else to change username', async () => {
       let newUsername = 'newUsername'
       await expectRevert(
-        user.setUsername(newUsername, { from: anotherUserAddress }),
+        user.changeUsername(newUsername, { from: anotherUserAddress }),
         'VM Exception while processing transaction: revert',
       )
       expect(await user.username()).to.be.equal(username)
@@ -62,7 +62,7 @@ describe('User Contract', async () => {
 
     it('should let owner to change his/her own deliveryAddress', async () => {
       let newDeliveryAddress = 'newdeliveryAddress'
-      const response = await user.setDeliveryAddress(newDeliveryAddress, {
+      const response = await user.changeDeliveryAddress(newDeliveryAddress, {
         from: userAddress,
       })
       expect(await user.deliveryAddress()).to.be.equal(newDeliveryAddress)
@@ -75,7 +75,7 @@ describe('User Contract', async () => {
     it('should not let anyone else to change deliveryAddress', async () => {
       let newDeliveryAddress = 'newDeliveryAddress'
       await expectRevert(
-        user.setDeliveryAddress(newDeliveryAddress, {
+        user.changeDeliveryAddress(newDeliveryAddress, {
           from: anotherUserAddress,
         }),
         'VM Exception while processing transaction: revert',

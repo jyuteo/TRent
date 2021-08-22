@@ -1,9 +1,10 @@
 const { accounts, contract } = require('@openzeppelin/test-environment')
-const [admin, user1, user2, anotherUser] = accounts
+const [admin, user1, user2, anotherUser, owner, media1] = accounts
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 const { expect } = require('chai')
 
 const ContractFactory = contract.fromArtifact('ContractFactory')
+const Item = contract.fromArtifact('Item')
 
 describe('Contract Factory', async () => {
   beforeEach(async () => {
@@ -32,8 +33,8 @@ describe('Contract Factory', async () => {
     )
   })
 
-  describe('User Contract', async () => {
-    it('can create new User contract for new user', async () => {
+  describe('User', async () => {
+    it('can create User contract for new user', async () => {
       let username = 'testUsername'
       let deliveryAddress = 'testAddress'
 
@@ -44,8 +45,13 @@ describe('Contract Factory', async () => {
         deliveryAddress,
         { from: user1 },
       )
-      const user1ContractAddress = await contractFactory.getDeployedUserContractForUser(
+      const user1ContractAddress = await contractFactory.getUserContractForUser(
         user1,
+      )
+      let userCount = await contractFactory.userCount()
+      expect(userCount).to.be.bignumber.equal(new BN(1))
+      expect(await contractFactory.userContracts(userCount - 1)).to.be.equal(
+        user1ContractAddress,
       )
       expectEvent(response1, 'userContractCreated', {
         userAddress: user1,
@@ -59,8 +65,13 @@ describe('Contract Factory', async () => {
         deliveryAddress,
         { from: user2 },
       )
-      const user2ContractAddress = await contractFactory.getDeployedUserContractForUser(
+      const user2ContractAddress = await contractFactory.getUserContractForUser(
         user2,
+      )
+      userCount = await contractFactory.userCount()
+      expect(userCount).to.be.bignumber.equal(new BN(2))
+      expect(await contractFactory.userContracts(userCount - 1)).to.be.equal(
+        user2ContractAddress,
       )
       expectEvent(response2, 'userContractCreated', {
         userAddress: user2,
@@ -68,7 +79,7 @@ describe('Contract Factory', async () => {
       })
     })
 
-    it('cannot create new User contract for existing user', async () => {
+    it('cannot create User contract for existing user', async () => {
       let username = 'testUsername'
       let deliveryAddress = 'testAddress'
 
@@ -90,6 +101,34 @@ describe('Contract Factory', async () => {
         ),
         'VM Exception while processing transaction: revert',
       )
+    })
+  })
+
+  describe('Item', async () => {
+    it('can create Item contract for new item', async () => {
+      let itemDetails = {
+        owner: owner,
+        name: 5,
+        collectionOrReturnAddress: 'testReturnAddress',
+        description: 'testDescription',
+        rentPerDay: 1,
+        maxAllowableLateDays: 5,
+        isAvailableForRent: true,
+        mediaIPFSHashes: [media1],
+      }
+      const response = await contractFactory.createItemContract(itemDetails, {
+        from: owner,
+      })
+      itemCount = await contractFactory.itemCount()
+      expect(itemCount).to.be.bignumber.equal(new BN(1))
+      const itemContractAddress = await contractFactory.itemContracts(
+        itemCount - 1,
+      )
+      expectEvent(response, 'itemContractCreated', {
+        itemOwnerAddress: owner,
+        itemContractAddress: itemContractAddress,
+      })
+      // get item details from deployed item contract
     })
   })
 })

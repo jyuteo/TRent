@@ -73,12 +73,12 @@ contract User {
         _;
     }
 
-    function setUsername(string memory _newUsername) public onlyUser {
+    function changeUsername(string memory _newUsername) public onlyUser {
         username = _newUsername;
         emit usernameChanged(msg.sender, _newUsername);
     }
 
-    function setDeliveryAddress(string memory _newDeliveryAddress)
+    function changeDeliveryAddress(string memory _newDeliveryAddress)
         public
         onlyUser
     {

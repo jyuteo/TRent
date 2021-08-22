@@ -3,9 +3,31 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./User.sol";
+import "./Item.sol";
 
 contract ContractFactory {
     address public admin;
+
+    address[] public userContracts;
+    uint256 public userCount;
+
+    address[] public itemContracts;
+    uint256 public itemCount;
+
+    // map Item contract to a list of Rental contracts of the item
+    mapping(address => address[]) internal rentalContractsForItem;
+
+    // map user address to User contract
+    mapping(address => address) internal userContractForUser;
+
+    mapping(address => bool) public hasItemContract;
+
+    event adminChanged(address newAdmin);
+    event userContractCreated(address userAddress, address userContractAddress);
+    event itemContractCreated(
+        address itemOwnerAddress,
+        address itemContractAddress
+    );
 
     constructor() {
         admin = msg.sender;
@@ -16,45 +38,30 @@ contract ContractFactory {
         _;
     }
 
-    // address[] internal deployedItemContracts;
-
-    // map Item contract to a list of Rental contracts of the item
-    // mapping(address => address[]) internal deployedRentalContractsForItem;
-
-    // map user address to deployed User contract
-    mapping(address => address) internal deployedUserContractForUser;
-
-    event adminChanged(address newAdmin);
-    event userContractCreated(address userAddress, address userContractAddress);
-
     function setAdmin(address _newAdmin) public onlyAdmin {
         admin = _newAdmin;
 
         emit adminChanged(admin);
     }
 
-    // function getDeployedItemContracts() public view returns (address[] memory) {
-    //     return deployedItemContracts;
-    // }
+    function getRentalContractsForItem(address _item)
+        public
+        view
+        returns (address[] memory)
+    {
+        return rentalContractsForItem[_item];
+    }
 
-    // function getDeployedRentalContractsForItem(address _item)
-    //     public
-    //     view
-    //     returns (address[] memory)
-    // {
-    //     return deployedRentalContractsForItem[_item];
-    // }
-
-    function getDeployedUserContractForUser(address _userAddress)
+    function getUserContractForUser(address _userAddress)
         public
         view
         returns (address)
     {
-        return deployedUserContractForUser[_userAddress];
+        return userContractForUser[_userAddress];
     }
 
     function hasUserContract(address _user) public view returns (bool) {
-        if (deployedUserContractForUser[_user] == address(0x0)) {
+        if (userContractForUser[_user] == address(0x0)) {
             return false;
         } else {
             return true;
@@ -69,14 +76,21 @@ contract ContractFactory {
         require(hasUserContract(_user) == false);
 
         User newUserContract = new User(_user, _username, _deliveryAddress);
-        deployedUserContractForUser[_user] = address(newUserContract);
+        userContracts.push(address(newUserContract));
+        userContractForUser[_user] = address(newUserContract);
+        userCount++;
 
         emit userContractCreated(_user, address(newUserContract));
     }
 
-    // function hasItemContract
+    function createItemContract(Item.ItemDetails calldata _itemDetails) public {
+        Item newItemContract = new Item(_itemDetails);
+        itemContracts.push(address(newItemContract));
+        hasItemContract[address(newItemContract)] = true;
+        itemCount++;
 
-    // function createItemContract
+        emit itemContractCreated(msg.sender, address(newItemContract));
+    }
 
     // function createRentalContract
 }

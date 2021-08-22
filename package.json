@@ -5,6 +5,7 @@
   "scripts": {
     "truffle:compile": "node_modules/.bin/truffle compile",
     "truffle:migrate": "node_modules/.bin/truffle migrate",
+    "truffle:contract-size": "node_modules/.bin/truffle run contract-size",
     "mocha:test": "mocha --exit --recursive --timeout 10000"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
     "babel-preset-stage-3": "^6.24.1",
     "babel-register": "^6.26.0",
     "truffle": "^5.4.6",
+    "truffle-contract-size": "^2.0.1",
     "web3": "^1.5.2",
     "webpack": "^5.51.1"
   },

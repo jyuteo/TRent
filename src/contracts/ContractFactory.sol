@@ -5,13 +5,53 @@ pragma solidity >=0.7.0 <0.9.0;
 import "./User.sol";
 
 contract ContractFactory {
-    address[] private deployedItemContracts;
+    address public admin;
+
+    constructor() {
+        admin = msg.sender;
+    }
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin);
+        _;
+    }
+
+    // address[] internal deployedItemContracts;
 
     // map Item contract to a list of Rental contracts of the item
-    mapping(address => address[]) private deployedRentalContractsForItem;
+    // mapping(address => address[]) internal deployedRentalContractsForItem;
 
     // map user address to deployed User contract
-    mapping(address => address) public deployedUserContractForUser;
+    mapping(address => address) internal deployedUserContractForUser;
+
+    event adminChanged(address newAdmin);
+    event userContractCreated(address userAddress, address userContractAddress);
+
+    function setAdmin(address _newAdmin) public onlyAdmin {
+        admin = _newAdmin;
+
+        emit adminChanged(admin);
+    }
+
+    // function getDeployedItemContracts() public view returns (address[] memory) {
+    //     return deployedItemContracts;
+    // }
+
+    // function getDeployedRentalContractsForItem(address _item)
+    //     public
+    //     view
+    //     returns (address[] memory)
+    // {
+    //     return deployedRentalContractsForItem[_item];
+    // }
+
+    function getDeployedUserContractForUser(address _userAddress)
+        public
+        view
+        returns (address)
+    {
+        return deployedUserContractForUser[_userAddress];
+    }
 
     function hasUserContract(address _user) public view returns (bool) {
         if (deployedUserContractForUser[_user] == address(0x0)) {
@@ -25,14 +65,13 @@ contract ContractFactory {
         address _user,
         string memory _username,
         string memory _deliveryAddress
-    ) public returns (User) {
+    ) public {
         require(hasUserContract(_user) == false);
 
-        User newUser = new User(_user, _username, _deliveryAddress);
-        deployedUserContractForUser[_user] = address(newUser);
-        return newUser;
+        User newUserContract = new User(_user, _username, _deliveryAddress);
+        deployedUserContractForUser[_user] = address(newUserContract);
 
-        //newUser = await User.new(_user, _username, _deliveryAddress);
+        emit userContractCreated(_user, address(newUserContract));
     }
 
     // function hasItemContract

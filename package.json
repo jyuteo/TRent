@@ -5,7 +5,7 @@
   "scripts": {
     "truffle:compile": "node_modules/.bin/truffle compile",
     "truffle:migrate": "node_modules/.bin/truffle migrate",
-    "truffle:test": "mocha --exit --recursive --timeout 10000"
+    "mocha:test": "mocha --exit --recursive --timeout 10000"
   },
   "dependencies": {
     "babel-polyfill": "^6.26.0",
@@ -15,7 +15,8 @@
     "babel-preset-stage-3": "^6.24.1",
     "babel-register": "^6.26.0",
     "truffle": "^5.4.6",
-    "web3": "^1.5.2"
+    "web3": "^1.5.2",
+    "webpack": "^5.51.1"
   },
   "devDependencies": {
     "@openzeppelin/test-environment": "^0.1.9",

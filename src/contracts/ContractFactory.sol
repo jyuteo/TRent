@@ -70,8 +70,8 @@ contract ContractFactory {
 
     function createUserContractForNewUser(
         address _user,
-        string memory _username,
-        string memory _deliveryAddress
+        string calldata _username,
+        string calldata _deliveryAddress
     ) public {
         require(hasUserContract(_user) == false);
 

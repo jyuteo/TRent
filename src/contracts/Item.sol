@@ -91,12 +91,12 @@ contract Item {
         emit itemStatusChanged(address(this), itemStatus);
     }
 
-    function changeItemName(string memory _newName) public onlyOwner {
+    function changeItemName(string calldata _newName) public onlyOwner {
         itemDetails.name = _newName;
         emit itemDetailsChanged(address(this), "name", _newName);
     }
 
-    function changeItemCollectionOrReturnAddress(string memory _newAddress)
+    function changeItemCollectionOrReturnAddress(string calldata _newAddress)
         public
         onlyOwner
     {
@@ -108,7 +108,7 @@ contract Item {
         );
     }
 
-    function changeItemDescription(string memory _newDescription)
+    function changeItemDescription(string calldata _newDescription)
         public
         onlyOwner
     {
@@ -141,7 +141,7 @@ contract Item {
         );
     }
 
-    function changeItemMediaIPFSHashes(address[] memory _newMediaIPFSHashes)
+    function changeItemMediaIPFSHashes(address[] calldata _newMediaIPFSHashes)
         public
         onlyOwner
     {

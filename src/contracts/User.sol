@@ -73,12 +73,12 @@ contract User {
         _;
     }
 
-    function changeUsername(string memory _newUsername) public onlyUser {
+    function changeUsername(string calldata _newUsername) public onlyUser {
         username = _newUsername;
         emit usernameChanged(msg.sender, _newUsername);
     }
 
-    function changeDeliveryAddress(string memory _newDeliveryAddress)
+    function changeDeliveryAddress(string calldata _newDeliveryAddress)
         public
         onlyUser
     {
@@ -139,7 +139,7 @@ contract User {
         address _item,
         address _raterUserContract,
         uint8 _rate,
-        string memory _review,
+        string calldata _review,
         Role _role // role of rater
     ) public restricted {
         User rater = User(_raterUserContract);

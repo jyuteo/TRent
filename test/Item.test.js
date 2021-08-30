@@ -1,5 +1,11 @@
 const { accounts, contract } = require('@openzeppelin/test-environment')
-const [owner, anotherUser, renter, media1, rentalContract] = accounts
+const [
+  ownerUserContract,
+  ownerAddress,
+  anotherUser,
+  renter,
+  rentalContract,
+] = accounts
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 const { expect } = require('chai')
 
@@ -9,26 +15,31 @@ const DateTime = contract.fromArtifact('DateTime')
 describe('Item Contract', async () => {
   beforeEach(async () => {
     let itemDetails = {
-      owner: owner,
-      name: 5,
+      ownerUserContract: ownerUserContract,
+      ownerAddress: ownerAddress,
+      name: 'itemName',
       collectionOrReturnAddress: 'testReturnAddress',
       description: 'testDescription',
       rentPerDay: 1,
       maxAllowableLateDays: 5,
+      multipleForLateFees: 2,
       isAvailableForRent: true,
-      mediaIPFSHashes: [media1],
+      mediaIPFSHashes: 'testMedia1',
     }
-    item = await Item.new(itemDetails, { from: owner })
+    item = await Item.new(itemDetails, { from: ownerAddress })
   })
 
   describe('Owner', async () => {
     it('should have correct owner', async () => {
-      expect(await item.owner()).to.be.equal(owner)
+      expect(await item.ownerUserContract()).to.be.equal(ownerUserContract)
+      expect(await item.ownerAddress()).to.be.equal(ownerAddress)
     })
 
     it('should allow owner to change item details', async () => {
       const newItemName = 'newItemName'
-      const response = await item.changeItemName(newItemName, { from: owner })
+      const response = await item.changeItemName(newItemName, {
+        from: ownerAddress,
+      })
       const newItemDetails = await item.itemDetails()
       expect(newItemDetails.name).to.be.equal(newItemName)
       expectEvent(response, 'itemDetailsChanged', {

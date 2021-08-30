@@ -1,10 +1,12 @@
-const {
-  accounts,
-  contract,
-  web3,
-  provider,
-} = require('@openzeppelin/test-environment')
-const [admin, user1, user2, anotherUser, owner, media1] = accounts
+const { accounts, contract } = require('@openzeppelin/test-environment')
+const [
+  admin,
+  user1,
+  user2,
+  anotherUser,
+  ownerAddress,
+  ownerUserContract,
+] = accounts
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 const { expect } = require('chai')
 
@@ -114,17 +116,19 @@ describe('Contract Factory', async () => {
   describe('Item', async () => {
     it('can create Item contract for new item', async () => {
       let itemDetails = {
-        owner: owner,
-        name: 5,
+        ownerUserContract: ownerUserContract,
+        ownerAddress: ownerAddress,
+        name: 'itemName',
         collectionOrReturnAddress: 'testReturnAddress',
         description: 'testDescription',
         rentPerDay: 1,
         maxAllowableLateDays: 5,
+        multipleForLateFees: 2,
         isAvailableForRent: true,
-        mediaIPFSHashes: [media1],
+        mediaIPFSHashes: 'testMedia1',
       }
       const response = await contractFactory.createItemContract(itemDetails, {
-        from: owner,
+        from: ownerAddress,
       })
       itemCount = await contractFactory.itemCount()
       expect(itemCount).to.be.bignumber.equal(new BN(1))
@@ -132,7 +136,7 @@ describe('Contract Factory', async () => {
         itemCount - 1,
       )
       expectEvent(response, 'itemContractCreated', {
-        itemOwnerAddress: owner,
+        itemOwnerAddress: ownerAddress,
         itemContractAddress: itemContractAddress,
       })
       // get item details from deployed item contract

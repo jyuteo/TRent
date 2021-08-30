@@ -38,6 +38,11 @@ contract ContractFactory {
         _;
     }
 
+    modifier notItemOwner(address itemOwnerAddress) {
+        require(msg.sender != itemOwnerAddress);
+        _;
+    }
+
     function setAdmin(address _newAdmin) public onlyAdmin {
         admin = _newAdmin;
 
@@ -74,6 +79,7 @@ contract ContractFactory {
         string calldata _deliveryAddress
     ) public {
         require(hasUserContract(_user) == false);
+        require(_user == msg.sender);
 
         User newUserContract = new User(_user, _username, _deliveryAddress);
         userContracts.push(address(newUserContract));
@@ -84,6 +90,7 @@ contract ContractFactory {
     }
 
     function createItemContract(Item.ItemDetails calldata _itemDetails) public {
+        require(_itemDetails.ownerAddress == msg.sender);
         Item newItemContract = new Item(_itemDetails);
         itemContracts.push(address(newItemContract));
         hasItemContract[address(newItemContract)] = true;
@@ -92,5 +99,5 @@ contract ContractFactory {
         emit itemContractCreated(msg.sender, address(newItemContract));
     }
 
-    // function createRentalContract
+    // function createRentalContract modifier notItemOwner(itemOnwer) require item isAvailableForRent
 }

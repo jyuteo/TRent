@@ -4,6 +4,8 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "./helpers/Utils.sol";
 
+// import "./helpers/Structs.sol";
+
 contract Item {
     Utils utils = new Utils();
 
@@ -14,14 +16,16 @@ contract Item {
     }
 
     struct ItemDetails {
-        address owner;
+        address ownerUserContract;
+        address payable ownerAddress;
         string name;
         string collectionOrReturnAddress;
         string description;
-        uint256 rentPerDay;
+        uint256 rentPerDay; // in Wei
         uint8 maxAllowableLateDays;
+        uint8 multipleForLateFees;
         bool isAvailableForRent;
-        address[] mediaIPFSHashes;
+        string mediaIPFSHashes;
     }
 
     struct RentalStartEnd {
@@ -29,7 +33,8 @@ contract Item {
         uint256 end; // Unix epoch time
     }
 
-    address public owner;
+    address public ownerUserContract;
+    address public ownerAddress;
     ItemDetails public itemDetails;
     ItemStatus public itemStatus;
 
@@ -41,13 +46,18 @@ contract Item {
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
 
-    event itemOwnerChanged(address item, address newOwner);
+    event itemOwnerChanged(
+        address item,
+        address newOwnerUserContract,
+        address newOwnerAddress
+    );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
 
     constructor(ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
-        owner = itemDetails.owner;
+        ownerUserContract = itemDetails.ownerUserContract;
+        ownerAddress = itemDetails.ownerAddress;
 
         if (itemDetails.isAvailableForRent) {
             itemStatus = ItemStatus.AVAILABLE;
@@ -60,7 +70,7 @@ contract Item {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == ownerAddress);
         _;
     }
 
@@ -69,11 +79,20 @@ contract Item {
         _;
     }
 
-    function changeOwner(address _newOwner) public onlyOwner {
-        itemDetails.owner = _newOwner;
-        owner = _newOwner;
+    function changeOwner(
+        address _newOwnerUserContract,
+        address payable _newOwnerAddress
+    ) public onlyOwner {
+        itemDetails.ownerUserContract = _newOwnerUserContract;
+        itemDetails.ownerAddress = _newOwnerAddress;
+        ownerUserContract = _newOwnerUserContract;
+        ownerAddress = _newOwnerAddress;
 
-        emit itemOwnerChanged(address(this), _newOwner);
+        emit itemOwnerChanged(
+            address(this),
+            _newOwnerUserContract,
+            _newOwnerAddress
+        );
     }
 
     function changeItemStatus(uint8 _newStatus) public onlyOwner {
@@ -141,22 +160,14 @@ contract Item {
         );
     }
 
-    function changeItemMediaIPFSHashes(address[] calldata _newMediaIPFSHashes)
+    function changeItemMediaIPFSHashes(string calldata _newMediaIPFSHashes)
         public
         onlyOwner
     {
         itemDetails.mediaIPFSHashes = _newMediaIPFSHashes;
-        string memory newMediaIPFSHashes = "";
-        for (uint256 i = 0; i < _newMediaIPFSHashes.length; i++) {
-            newMediaIPFSHashes = string(
-                abi.encodePacked(
-                    newMediaIPFSHashes,
-                    ", ",
-                    // abi.encodePacked(_newMediaIPFSHashes[i])
-                    utils.address2str(_newMediaIPFSHashes[i])
-                )
-            );
-        }
+        string memory newMediaIPFSHashes = string(
+            abi.encodePacked(_newMediaIPFSHashes)
+        );
         emit itemDetailsChanged(
             address(this),
             "mediaIPFSHashes",
@@ -178,5 +189,9 @@ contract Item {
         rentalContracts.push(_newRentalContract);
         rentalContractCount++;
         rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
+    }
+
+    function getItemDetails() public view returns (ItemDetails memory) {
+        return itemDetails;
     }
 }

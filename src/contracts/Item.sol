@@ -3,6 +3,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./helpers/Utils.sol";
+import "./User.sol";
 
 // import "./helpers/Structs.sol";
 
@@ -25,7 +26,7 @@ contract Item {
         uint8 maxAllowableLateDays;
         uint8 multipleForLateFees;
         bool isAvailableForRent;
-        string mediaIPFSHashes;
+        string[] mediaIPFSHashes;
     }
 
     struct RentalStartEnd {
@@ -45,6 +46,9 @@ contract Item {
     address[] public renters;
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
+
+    User.Review[] public itemReviews;
+    uint8 public itemReviewCount;
 
     event itemOwnerChanged(
         address item,
@@ -67,6 +71,7 @@ contract Item {
 
         rentalContractCount = 0;
         renterCount = 0;
+        itemReviewCount = 0;
     }
 
     modifier onlyOwner() {
@@ -160,14 +165,13 @@ contract Item {
         );
     }
 
-    function changeItemMediaIPFSHashes(string calldata _newMediaIPFSHashes)
+    function changeItemMediaIPFSHashes(string[] memory _newMediaIPFSHashes)
         public
         onlyOwner
     {
         itemDetails.mediaIPFSHashes = _newMediaIPFSHashes;
-        string memory newMediaIPFSHashes = string(
-            abi.encodePacked(_newMediaIPFSHashes)
-        );
+        string memory newMediaIPFSHashes = "newMediaHashes";
+
         emit itemDetailsChanged(
             address(this),
             "mediaIPFSHashes",
@@ -193,5 +197,10 @@ contract Item {
 
     function getItemDetails() public view returns (ItemDetails memory) {
         return itemDetails;
+    }
+
+    function addItemReview(User.Review memory _review) public onlyRenters {
+        itemReviews.push(_review);
+        itemReviewCount++;
     }
 }

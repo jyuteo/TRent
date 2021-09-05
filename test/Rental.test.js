@@ -7,6 +7,7 @@ const [
   otherAddress,
 ] = accounts
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
+const balance = require('@openzeppelin/test-helpers/src/balance')
 const { expect } = require('chai')
 
 const Rental = contract.fromArtifact('Rental')
@@ -27,7 +28,7 @@ describe('Rental Contract', async () => {
       maxAllowableLateDays: 5,
       multipleForLateFees: 2,
       isAvailableForRent: true,
-      mediaIPFSHashes: 'testMedia1',
+      mediaIPFSHashes: ['testMedia1'],
     }
     item = await Item.new(itemDetails)
 
@@ -52,7 +53,9 @@ describe('Rental Contract', async () => {
   describe('Constructor', async () => {
     it('should have correct rental information', async () => {
       // rental
-      expect(Number(await rental.rentalFees())).to.be.equal(6)
+      expect((await rental.rentalFees()).toString()).to.be.equal(
+        '6000000000000000000',
+      )
       expect(Number(await rental.renterDeposit())).to.be.equal(20)
       expect(await rental.start()).to.be.bignumber.equal(
         new BN(await datetime.toTimestamp(2021, 8, 16)),
@@ -87,24 +90,22 @@ describe('Rental Contract', async () => {
     })
   })
   describe('Paying and claiming', async () => {
-    it('should allow renter to pay rental installment', async () => {
+    it('should allow renter to pay rental installment and calculate claimable rental fees correctly', async () => {
       await rental.payRentalInstallment(2, {
         from: renterAddress,
-        value: 2,
+        value: 2 * 10 ** 18,
       })
       expect(Number(await rental.paidRentalFees())).to.be.equal(2)
-      expect(Number(await rental.remainingRentalFees())).to.be.equal(Number(4))
+      expect(Number(await rental.remainingRentalFees())).to.be.equal(4)
       expect(Number(await rental.claimableRentalFees())).to.be.equal(2)
       expect(Number(await rental.claimedRentalFees())).to.be.equal(0)
-      expect(Number(await rental.remainingNumInstallment())).to.be.equal(
-        Number(1),
-      )
+      expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
     })
     it('should not allow others to pay renter installment', async () => {
       await expectRevert(
         rental.payRentalInstallment(2, {
           from: otherAddress,
-          value: 2,
+          value: 2 * 10 ** 18,
         }),
         'VM Exception while processing transaction: revert',
       )
@@ -118,16 +119,41 @@ describe('Rental Contract', async () => {
         'VM Exception while processing transaction: revert',
       )
     })
+    it('should allow renter to claim rental fees', async () => {
+      // total rental: 6, num installments: 2
+      // 1st installment: renter pays 2
+      await rental.payRentalInstallment(2, {
+        from: renterAddress,
+        value: 2 * 10 ** 18,
+      })
+
+      before = await balance.current(ownerAddress)
+      console.log(Number(before))
+      // await rental.claimRentalFees({ from: ownerAddress })
+      after = await balance.current(ownerAddress)
+      console.log(Number(after))
+      console.log(Number(after - before))
+      // expect(Number(await rental.claimableRentalFees())).to.be.equal(0)
+      // expect(Number(await rental.claimedRentalFees())).to.be.equal(2)
+      // expect(Number(await rental.paidRentalFees())).to.be.equal(2)
+      // expect(Number(await rental.remainingRentalFees())).to.be.equal(4)
+      // expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
+    })
   })
-  // internal functions
+  // internal functions, change the functions to public before testing
   // describe('Helpers', async () => {
-  //   it('getDaysBetween', async () => {
-  //     const start = await datetime.toTimestamp(2021, 8, 16)
-  //     const end = await datetime.toTimestamp(2021, 8, 21)
-  //     const daysBetween = await rental.getDaysBetween(start, end, {
-  //       from: rental.address,
-  //     })
-  //     expect(Number(daysBetween)).to.be.equal(5)
+  // it('getDaysBetween', async () => {
+  //   const start = await datetime.toTimestamp(2021, 8, 16)
+  //   const end = await datetime.toTimestamp(2021, 8, 21)
+  //   const daysBetween = await rental.getDaysBetween(start, end, {
+  //     from: rental.address,
   //   })
+  //   expect(Number(daysBetween)).to.be.equal(5)
+  // })
+  // it('toWei', async () => {
+  //   const etherAmount = 6
+  //   const Wei = await rental.toWei(etherAmount)
+  //   expect(Number(Wei)).to.be.equal(etherAmount * 10 ** 18)
+  // })
   // })
 })

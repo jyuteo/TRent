@@ -10,8 +10,24 @@ contract Rental {
         RENTED,
         RETURNED,
         END,
-        OWNERDISPUTEOPENED,
-        RENTERDISPUTEOPENED
+        OWNERDISPUTE,
+        RENTERDISPUTE
+    }
+
+    struct Dispute {
+        string title;
+        string description;
+        string[] mediaIPFSHashes;
+        uint256 compensationAmount; // a value less than owner deposit and renter deposit
+        uint256 totalIncentive; // user has to pay the amount of incentive as deposit when open a dispute
+        uint256 startTime;
+        uint256 approvalCount;
+        mapping(uint256 => address payable) approversList;
+        mapping(address => bool) isApprover;
+        uint256 rejectionCount;
+        mapping(uint256 => address payable) rejectersList;
+        mapping(address => bool) isRejecter;
+        address payable creator;
     }
 
     address public itemContract;
@@ -41,6 +57,10 @@ contract Rental {
     address public ownerUserContract;
     uint256 public ownerDeposit;
     string[] public ownerProofOfTransfer; // IPFS hashes
+
+    mapping(uint8 => Dispute) public disputes;
+    uint8 public disputeCount;
+    uint8 public disputePeriod = 3; // dispute will last for 3 days
 
     event rentalContractCreated(
         address renterUserContract,
@@ -136,6 +156,34 @@ contract Rental {
         _;
     }
 
+    modifier validVoter(Dispute storage _dispute) {
+        require(
+            msg.sender != ownerAddress,
+            "Owner is not eligible to vote for disputes"
+        );
+        require(
+            msg.sender != renterAddress,
+            "Renter is not eligible to vote for disputes"
+        );
+        require(
+            !_dispute.isApprover[msg.sender],
+            "User has already voted for this dispute"
+        );
+        require(
+            !_dispute.isRejecter[msg.sender],
+            "User has already voted for this dispute"
+        );
+        _;
+    }
+
+    modifier onlyDisputeCreator(Dispute storage _dispute) {
+        require(
+            msg.sender == _dispute.creator,
+            "Only dispute creater can resolve dispute"
+        );
+        _;
+    }
+
     function uploadOwnerProofOfTransferAndPayDeposit(
         string[] memory _ownerProofOfTransfer,
         uint256 _ownerDeposit
@@ -203,16 +251,16 @@ contract Rental {
     function claimRentalFees() public onlyOwner {
         require(claimableRentalFees > 0, "There is no claimable rental fees");
         require(
-            rentalStatus != RentalStatus.OWNERDISPUTEOPENED,
-            "Unable to claim payment with current rental status"
+            rentalStatus != RentalStatus.OWNERDISPUTE,
+            "Unable to claim payment with current rental status, rental status is ON OWNER DISPUTE"
         );
         require(
-            rentalStatus != RentalStatus.RENTERDISPUTEOPENED,
-            "Unable to claim payment with current rental status"
+            rentalStatus != RentalStatus.RENTERDISPUTE,
+            "Unable to claim payment with current rental status, rental status is ON RENTER DISPUTE"
         );
         require(
             rentalStatus != RentalStatus.END,
-            "Unable to claim payment with current rental status"
+            "Unable to claim payment with current rental status, rental status is END"
         );
 
         ownerAddress.transfer(claimableRentalFees);
@@ -268,6 +316,151 @@ contract Rental {
         );
     }
 
+    // status == returned: if owner thinks that prove of return is fake
+    // or if owner thinks that item is damaged
+    function createOwnerDispute(
+        string memory _title,
+        string memory _description,
+        string[] memory _mediaIPFSHashes,
+        uint256 _compensationAmount,
+        uint256 _totalIncentive
+    ) public payable onlyOwner {
+        require(
+            msg.value == _totalIncentive,
+            "Value transfered not equal to required amount"
+        );
+        require(
+            rentalStatus == RentalStatus.RETURNED,
+            "Unable to create dispute with current rental status"
+        );
+
+        rentalStatus = RentalStatus.OWNERDISPUTE;
+
+        Dispute storage newDispute = disputes[disputeCount];
+        newDispute.title = _title;
+        newDispute.description = _description;
+        newDispute.mediaIPFSHashes = _mediaIPFSHashes;
+        newDispute.compensationAmount = _compensationAmount;
+        newDispute.totalIncentive = _totalIncentive;
+        newDispute.startTime = block.timestamp;
+        newDispute.approvalCount = 0;
+        newDispute.rejectionCount = 0;
+        newDispute.creator = payable(msg.sender);
+
+        disputeCount++;
+    }
+
+    // status == rented: if renter thinks that prove of transfer is fake
+    function createRenterDispute(
+        string memory _title,
+        string memory _description,
+        string[] memory _mediaIPFSHashes,
+        uint256 _compensationAmount,
+        uint256 _totalIncentive
+    ) public payable onlyRenter {
+        require(
+            msg.value == _totalIncentive,
+            "Value transfered not equal to required amount"
+        );
+        require(
+            rentalStatus == RentalStatus.RENTED,
+            "Unable to create dispute with current rental status"
+        );
+
+        rentalStatus = RentalStatus.RENTERDISPUTE;
+
+        Dispute storage newDispute = disputes[disputeCount];
+        newDispute.title = _title;
+        newDispute.description = _description;
+        newDispute.mediaIPFSHashes = _mediaIPFSHashes;
+        newDispute.compensationAmount = _compensationAmount;
+        newDispute.totalIncentive = _totalIncentive;
+        newDispute.startTime = block.timestamp;
+        newDispute.approvalCount = 0;
+        newDispute.rejectionCount = 0;
+        newDispute.creator = payable(msg.sender);
+
+        disputeCount++;
+    }
+
+    function approveDispute(uint8 _disputeIndex)
+        public
+        validVoter(disputes[_disputeIndex])
+    {
+        Dispute storage dispute = disputes[_disputeIndex];
+
+        dispute.approversList[dispute.approvalCount] = payable(msg.sender);
+        dispute.isApprover[msg.sender] = true;
+        dispute.approvalCount++;
+    }
+
+    function rejectDispute(uint8 _disputeIndex)
+        public
+        validVoter(disputes[_disputeIndex])
+    {
+        Dispute storage dispute = disputes[_disputeIndex];
+
+        dispute.rejectersList[dispute.rejectionCount] = payable(msg.sender);
+        dispute.isRejecter[msg.sender] = true;
+        dispute.rejectionCount++;
+    }
+
+    function resolveDispute(uint8 _disputeIndex)
+        public
+        payable
+        onlyDisputeCreator(disputes[_disputeIndex])
+    {
+        require(
+            rentalStatus == RentalStatus.OWNERDISPUTE ||
+                rentalStatus == RentalStatus.RENTERDISPUTE,
+            "Unable to resolve dispute with current rental status"
+        );
+        Dispute storage dispute = disputes[_disputeIndex];
+        require(
+            block.timestamp >= dispute.startTime + disputePeriod * 24 * 60 * 60
+        );
+
+        uint256 remainingIncentive = dispute.totalIncentive;
+        uint256 paidIncentive = 0;
+
+        // if dispute is approved
+        if (
+            dispute.approvalCount >
+            ((dispute.approvalCount + dispute.rejectionCount) / 10) * 6
+        ) {
+            // pay incentive to voters who accepted the dispute
+            for (uint256 i; i < dispute.approvalCount; i++) {
+                uint256 payoutIncentive = payIncentive(remainingIncentive);
+                dispute.approversList[i].transfer(payoutIncentive);
+                paidIncentive = paidIncentive + payoutIncentive;
+                remainingIncentive = remainingIncentive - payoutIncentive;
+            }
+            // pay compensation to dispute creator with renter deposit
+            dispute.creator.transfer(dispute.compensationAmount);
+            renterDeposit = renterDeposit - dispute.compensationAmount;
+        }
+        // if dispute is rejected
+        else {
+            // pay incentive to voters who rejected the dispute
+            for (uint256 i; i < dispute.rejectionCount; i++) {
+                uint256 payoutIncentive = payIncentive(remainingIncentive);
+                dispute.rejectersList[i].transfer(payoutIncentive);
+                paidIncentive = paidIncentive + payoutIncentive;
+                remainingIncentive = remainingIncentive - payoutIncentive;
+            }
+        }
+
+        assert(remainingIncentive == dispute.totalIncentive - paidIncentive);
+        // return remaining incentive to dispute creater
+        dispute.creator.transfer(remainingIncentive);
+
+        if (dispute.creator == renterAddress) {
+            rentalStatus = RentalStatus.RENTED;
+        } else if (dispute.creator == ownerAddress) {
+            rentalStatus = RentalStatus.RETURNED;
+        }
+    }
+
     //----------------------------------helpers-------------------------------------//
     function getDaysBetween(uint256 _time1, uint256 _time2)
         internal
@@ -277,5 +470,17 @@ contract Rental {
         uint256 secondsBetween = _time2 - _time1;
         uint256 daysBetween = secondsBetween / 60 / 60 / 24;
         return daysBetween;
+    }
+
+    function toWei(uint256 _ether) internal pure returns (uint256) {
+        return _ether * 10**18;
+    }
+
+    function toEther(uint256 _wei) internal pure returns (uint256) {
+        return _wei / 10**18;
+    }
+
+    function payIncentive(uint256 _incentive) internal pure returns (uint256) {
+        return (_incentive / 100) * 5;
     }
 }

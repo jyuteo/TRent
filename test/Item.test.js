@@ -1,4 +1,4 @@
-const { accounts, contract } = require('@openzeppelin/test-environment')
+const { accounts, contract, web3 } = require('@openzeppelin/test-environment')
 const [
   ownerUserContract,
   ownerAddress,
@@ -24,7 +24,7 @@ describe('Item Contract', async () => {
       maxAllowableLateDays: 5,
       multipleForLateFees: 2,
       isAvailableForRent: true,
-      mediaIPFSHashes: 'testMedia1',
+      mediaIPFSHashes: ['testMedia1'],
     }
     item = await Item.new(itemDetails, { from: ownerAddress })
   })

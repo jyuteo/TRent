@@ -2,6 +2,9 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
+import "./Item.sol";
+import "./Rental.sol";
+
 contract User {
     enum Role {
         OWNER,
@@ -17,9 +20,10 @@ contract User {
         uint256 end; // Unix epoch time
     }
 
-    struct Rating {
+    struct Review {
         address item;
-        address rater;
+        address rentalContract;
+        address raterUserContract;
         uint8 rate;
         string review;
         Role role; // role of the rater
@@ -34,8 +38,8 @@ contract User {
 
     RentalHistory[] public rentalHistories;
     uint8 public rentalHistoryCount;
-    Rating[] public ratings;
-    uint8 public ratingCount;
+    Review[] public reviews;
+    uint8 public reviewCount;
     uint8 public lendingCount;
     uint8 public borrowingCount;
     bool public isDishonestUser;
@@ -45,7 +49,7 @@ contract User {
         address indexed userAccount,
         string newDeliveryAddress
     );
-    event newRatingInput(address indexed from, uint8 rate, uint8 ratingCount);
+    event newReviewInput(address indexed from, uint8 rate, uint8 ratingCount);
 
     constructor(
         address _userAddress,
@@ -57,7 +61,7 @@ contract User {
         deliveryAddress = _deliveryAddress;
 
         rentalHistoryCount = 0;
-        ratingCount = 0;
+        reviewCount = 0;
         lendingCount = 0;
         borrowingCount = 0;
         isDishonestUser = false;
@@ -135,36 +139,44 @@ contract User {
         rentalHistoryCount++;
     }
 
-    function inputRating(
+    function inputReview(
         address _item,
+        address _rentalContract,
         address _raterUserContract,
         uint8 _rate,
         string calldata _review,
         Role _role // role of rater
     ) public restricted {
+        Item item = Item(_item);
         User rater = User(_raterUserContract);
+        // Rental rental = Rental(_rentalContract);
         uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
         rater.setRentalHisotryHasRated(rentalIndexOfRater);
 
-        Rating memory newRating = Rating({
+        Review memory newReview = Review({
             item: _item,
+            rentalContract: _rentalContract,
             rate: _rate,
-            rater: rater.userAddress(),
+            raterUserContract: _raterUserContract,
             review: _review,
             role: _role,
             time: block.timestamp
         });
 
-        ratings.push(newRating);
-        ratingCount++;
+        reviews.push(newReview);
+        reviewCount++;
 
-        emit newRatingInput(rater.userAddress(), _rate, ratingCount);
+        if (_role == Role.RENTER) {
+            item.addItemReview(newReview);
+        }
+
+        emit newReviewInput(rater.userAddress(), _rate, reviewCount);
     }
 
     function getRatingsSum() public view returns (uint256) {
         uint256 sum = 0;
-        for (uint256 i = 0; i < ratingCount; i++) {
-            sum += ratings[i].rate;
+        for (uint256 i = 0; i < reviewCount; i++) {
+            sum += reviews[i].rate;
         }
         return sum;
     }

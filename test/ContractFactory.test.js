@@ -125,7 +125,7 @@ describe('Contract Factory', async () => {
         maxAllowableLateDays: 5,
         multipleForLateFees: 2,
         isAvailableForRent: true,
-        mediaIPFSHashes: 'testMedia1',
+        mediaIPFSHashes: ['testMedia1'],
       }
       const response = await contractFactory.createItemContract(itemDetails, {
         from: ownerAddress,

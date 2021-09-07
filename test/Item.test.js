@@ -1,4 +1,4 @@
-const { accounts, contract, web3 } = require('@openzeppelin/test-environment')
+const { accounts, contract } = require('@openzeppelin/test-environment')
 const [
   ownerUserContract,
   ownerAddress,
@@ -20,7 +20,7 @@ describe('Item Contract', async () => {
       name: 'itemName',
       collectionOrReturnAddress: 'testReturnAddress',
       description: 'testDescription',
-      rentPerDay: 1,
+      rentPerDay: 1 * 10 ** 9, // in gwei
       maxAllowableLateDays: 5,
       multipleForLateFees: 2,
       isAvailableForRent: true,

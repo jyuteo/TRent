@@ -4,6 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "./User.sol";
 import "./Item.sol";
+import "./Rental.sol";
 
 contract ContractFactory {
     address public admin;
@@ -15,18 +16,22 @@ contract ContractFactory {
     uint256 public itemCount;
 
     // map Item contract to a list of Rental contracts of the item
-    mapping(address => address[]) internal rentalContractsForItem;
+    mapping(address => address[]) public rentalContractsForItem;
+    mapping(address => uint8) public rentalContractCountForItem;
 
     // map user address to User contract
-    mapping(address => address) internal userContractForUser;
+    mapping(address => address) public userContractForUser;
 
     mapping(address => bool) public hasItemContract;
 
-    event adminChanged(address newAdmin);
-    event userContractCreated(address userAddress, address userContractAddress);
-    event itemContractCreated(
-        address itemOwnerAddress,
-        address itemContractAddress
+    event adminChanged(address newAdminAddress);
+    event userContractCreated(address userAddress, address userContract);
+    event itemContractCreated(address itemOwnerAddress, address itemContract);
+    event rentalContractCreated(
+        address rentalContract,
+        address itemContract,
+        address renterAddress,
+        address ownerAddress
     );
 
     constructor() {
@@ -34,12 +39,15 @@ contract ContractFactory {
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == admin);
+        require(msg.sender == admin, "Method is restricted to Admin");
         _;
     }
 
     modifier notItemOwner(address itemOwnerAddress) {
-        require(msg.sender != itemOwnerAddress);
+        require(
+            msg.sender != itemOwnerAddress,
+            "Method is not available for item Owner"
+        );
         _;
     }
 
@@ -65,8 +73,8 @@ contract ContractFactory {
         return userContractForUser[_userAddress];
     }
 
-    function hasUserContract(address _user) public view returns (bool) {
-        if (userContractForUser[_user] == address(0x0)) {
+    function hasUserContract(address _userAddress) public view returns (bool) {
+        if (userContractForUser[_userAddress] == address(0x0)) {
             return false;
         } else {
             return true;
@@ -74,30 +82,83 @@ contract ContractFactory {
     }
 
     function createUserContractForNewUser(
-        address _user,
+        address _userAddress,
         string calldata _username,
         string calldata _deliveryAddress
     ) public {
-        require(hasUserContract(_user) == false);
-        require(_user == msg.sender);
+        require(
+            hasUserContract(_userAddress) == false,
+            "User address already exists"
+        );
+        require(
+            _userAddress == msg.sender,
+            "Users can only create new account with their own address"
+        );
 
-        User newUserContract = new User(_user, _username, _deliveryAddress);
+        User newUserContract = new User(
+            _userAddress,
+            _username,
+            _deliveryAddress
+        );
         userContracts.push(address(newUserContract));
-        userContractForUser[_user] = address(newUserContract);
+        userContractForUser[_userAddress] = address(newUserContract);
         userCount++;
 
-        emit userContractCreated(_user, address(newUserContract));
+        emit userContractCreated(_userAddress, address(newUserContract));
     }
 
     function createItemContract(Item.ItemDetails calldata _itemDetails) public {
-        require(_itemDetails.ownerAddress == msg.sender);
+        require(
+            _itemDetails.ownerAddress == msg.sender,
+            "Method is restricted to item Owner"
+        );
         Item newItemContract = new Item(_itemDetails);
         itemContracts.push(address(newItemContract));
         hasItemContract[address(newItemContract)] = true;
         itemCount++;
 
+        rentalContractCountForItem[address(newItemContract)] = 0;
+
         emit itemContractCreated(msg.sender, address(newItemContract));
     }
 
-    // function createRentalContract modifier notItemOwner(itemOnwer) require item isAvailableForRent
+    function createRentalContract(
+        address _itemContract,
+        address _renterUserContract,
+        address payable _renterAddress,
+        uint256 _rentalFees,
+        uint256 _renterDeposit,
+        uint256 _start,
+        uint256 _end,
+        uint8 _numInstallment
+    ) public payable {
+        Item item = Item(_itemContract);
+        require(
+            msg.sender != item.ownerAddress(),
+            "Method is not applicable for item Owner"
+        );
+        Rental newRentalContract = new Rental(
+            address(item),
+            _renterUserContract,
+            _renterAddress,
+            _rentalFees,
+            _renterDeposit,
+            _start,
+            _end,
+            _numInstallment
+        );
+
+        uint8 rentalContractIndex = rentalContractCountForItem[(address(item))];
+        rentalContractsForItem[address(item)][rentalContractIndex] = address(
+            newRentalContract
+        );
+        rentalContractCountForItem[address(item)]++;
+
+        emit rentalContractCreated(
+            address(newRentalContract),
+            address(item),
+            _renterAddress,
+            item.ownerAddress()
+        );
+    }
 }

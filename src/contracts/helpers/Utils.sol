@@ -39,4 +39,18 @@ contract Utils {
         if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
         else return bytes1(uint8(b) + 0x57);
     }
+
+    function getDaysBetween(uint256 _time1, uint256 _time2)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 secondsBetween = _time2 - _time1;
+        uint256 daysBetween = secondsBetween / 60 / 60 / 24;
+        return daysBetween;
+    }
+
+    function gweiToWei(uint256 _gwei) public pure returns (uint256) {
+        return _gwei * 10**9;
+    }
 }

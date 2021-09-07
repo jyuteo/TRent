@@ -310,7 +310,7 @@ describe('User Contract', async () => {
         rater.address,
         rate2,
         review2,
-        1, // RENTER        {
+        1, // RENTER
         { from: raterAddress },
       )
       expect(await user.ratingCount()).to.be.bignumber.equal(new BN(2))

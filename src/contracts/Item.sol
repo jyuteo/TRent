@@ -5,8 +5,6 @@ pragma solidity >=0.7.0 <0.9.0;
 import "./helpers/Utils.sol";
 import "./User.sol";
 
-// import "./helpers/Structs.sol";
-
 contract Item {
     Utils utils = new Utils();
 
@@ -22,7 +20,7 @@ contract Item {
         string name;
         string collectionOrReturnAddress;
         string description;
-        uint256 rentPerDay; // in Wei
+        uint256 rentPerDay; // in gwei
         uint8 maxAllowableLateDays;
         uint8 multipleForLateFees;
         bool isAvailableForRent;
@@ -75,12 +73,12 @@ contract Item {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == ownerAddress);
+        require(msg.sender == ownerAddress, "Method is restricted to Owner");
         _;
     }
 
     modifier onlyRenters() {
-        require(isRenter[msg.sender]);
+        require(isRenter[msg.sender], "Method is restricted to Renter");
         _;
     }
 

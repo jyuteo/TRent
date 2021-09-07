@@ -3,8 +3,11 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./Item.sol";
+import "./helpers/Utils.sol";
 
 contract Rental {
+    Utils utils = new Utils();
+
     enum RentalStatus {
         CREATED,
         RENTED,
@@ -29,6 +32,8 @@ contract Rental {
         mapping(address => bool) isRejecter;
         address payable creator;
     }
+
+    //--All fees unit are in gwei--//
 
     address public itemContract;
     Item public item;
@@ -66,14 +71,14 @@ contract Rental {
         address renterUserContract,
         address renterAddress,
         address rentalContract,
-        uint256 renterDeposit
+        uint256 renterDepositInGwei
     );
 
     event itemRented(
         address itemContract,
         address renterAddress,
         address ownerAddress,
-        uint256 ownerDeposit,
+        uint256 ownerDepositInGwei,
         RentalStatus rentalStatus
     );
 
@@ -90,7 +95,7 @@ contract Rental {
         address itemContract,
         address rentalContract,
         address renterUserContract,
-        uint256 lateFees
+        uint256 lateFeesInGwei
     );
 
     constructor(
@@ -104,7 +109,7 @@ contract Rental {
         uint8 _numInstallment
     ) payable {
         require(
-            msg.value == _renterDeposit,
+            msg.value == utils.gweiToWei(_renterDeposit),
             "Value transfered is less than required amount"
         );
 
@@ -151,7 +156,7 @@ contract Rental {
 
     modifier correctFinalInstallmentValue(uint256 _amount) {
         if (remainingNumInstallment == 1) {
-            require(_amount == remainingRentalFees);
+            require(utils.gweiToWei(_amount) == remainingRentalFees);
         }
         _;
     }
@@ -189,7 +194,7 @@ contract Rental {
         uint256 _ownerDeposit
     ) public payable onlyOwner {
         require(
-            msg.value >= _ownerDeposit,
+            msg.value == utils.gweiToWei(_ownerDeposit),
             "Value transfered is less than required amount"
         );
         require(
@@ -216,7 +221,7 @@ contract Rental {
     {
         require(
             remainingRentalFees == 0,
-            "Settle all payment before returning"
+            "All fees have to be paid before returning"
         );
 
         renterProofOfReturn = _renterProofOfReturn;
@@ -237,7 +242,7 @@ contract Rental {
         correctFinalInstallmentValue(_amount)
     {
         require(
-            msg.value == _amount,
+            msg.value == utils.gweiToWei(_amount),
             "Value transfered not equal to required amount"
         );
         paidRentalFees += _amount;
@@ -263,7 +268,7 @@ contract Rental {
             "Unable to claim payment with current rental status, rental status is END"
         );
 
-        ownerAddress.transfer(claimableRentalFees);
+        ownerAddress.transfer(utils.gweiToWei(claimableRentalFees));
         claimedRentalFees += claimableRentalFees;
         claimableRentalFees = 0;
     }
@@ -289,11 +294,11 @@ contract Rental {
         );
 
         if (ownerDeposit > 0) {
-            ownerAddress.transfer(ownerDeposit);
+            ownerAddress.transfer(utils.gweiToWei(ownerDeposit));
         }
 
         if (renterDeposit > 0) {
-            renterAddress.transfer(renterDeposit);
+            renterAddress.transfer(utils.gweiToWei(renterDeposit));
         }
 
         assert(address(this).balance == 0);
@@ -304,9 +309,17 @@ contract Rental {
 
     function payLateFees(uint256 _lateFees) public payable onlyRenter {
         require(
-            block.timestamp > end && getDaysBetween(end, block.timestamp) <= 5
+            block.timestamp > end,
+            "Unable to pay late fees before rental end date"
         );
-        require(msg.value == _lateFees);
+        require(
+            utils.getDaysBetween(end, block.timestamp) <= 5,
+            "Unable to pay late fees 5 days later than rental end date"
+        );
+        require(
+            msg.value == utils.gweiToWei(_lateFees),
+            "Value transfered is not euqal to required amount"
+        );
 
         emit lateFeesPaid(
             itemContract,
@@ -314,6 +327,23 @@ contract Rental {
             renterUserContract,
             _lateFees
         );
+    }
+
+    function settleRentalAfterFiveLateDays() public payable onlyOwner {
+        require(
+            block.timestamp > end + 5 * 24 * 60 * 60,
+            "Unable to settle rental before 5 late days"
+        );
+        require(
+            rentalStatus == RentalStatus.RENTED,
+            "Unable to settle rental with current rental status"
+        );
+
+        rentalStatus = RentalStatus.END;
+        item.changeItemStatus(2); // DELETED
+
+        // transfer all balance in the contract to owner
+        ownerAddress.transfer(address(this).balance);
     }
 
     // status == returned: if owner thinks that prove of return is fake
@@ -326,12 +356,16 @@ contract Rental {
         uint256 _totalIncentive
     ) public payable onlyOwner {
         require(
-            msg.value == _totalIncentive,
+            msg.value == utils.gweiToWei(_totalIncentive),
             "Value transfered not equal to required amount"
         );
         require(
             rentalStatus == RentalStatus.RETURNED,
             "Unable to create dispute with current rental status"
+        );
+        require(
+            _compensationAmount < renterDeposit,
+            "Compensation requested by owner must be lower than renter's deposit"
         );
 
         rentalStatus = RentalStatus.OWNERDISPUTE;
@@ -359,12 +393,16 @@ contract Rental {
         uint256 _totalIncentive
     ) public payable onlyRenter {
         require(
-            msg.value == _totalIncentive,
+            msg.value == utils.gweiToWei(_totalIncentive),
             "Value transfered not equal to required amount"
         );
         require(
             rentalStatus == RentalStatus.RENTED,
             "Unable to create dispute with current rental status"
+        );
+        require(
+            _compensationAmount < ownerDeposit,
+            "Compensation requested by renter must be lower than owner's deposit"
         );
 
         rentalStatus = RentalStatus.RENTERDISPUTE;
@@ -430,21 +468,31 @@ contract Rental {
         ) {
             // pay incentive to voters who accepted the dispute
             for (uint256 i; i < dispute.approvalCount; i++) {
-                uint256 payoutIncentive = payIncentive(remainingIncentive);
-                dispute.approversList[i].transfer(payoutIncentive);
+                uint256 payoutIncentive = calculatePayoutIncentive(
+                    remainingIncentive
+                );
+                dispute.approversList[i].transfer(
+                    utils.gweiToWei(payoutIncentive)
+                );
                 paidIncentive = paidIncentive + payoutIncentive;
                 remainingIncentive = remainingIncentive - payoutIncentive;
             }
             // pay compensation to dispute creator with renter deposit
-            dispute.creator.transfer(dispute.compensationAmount);
+            dispute.creator.transfer(
+                utils.gweiToWei(dispute.compensationAmount)
+            );
             renterDeposit = renterDeposit - dispute.compensationAmount;
         }
         // if dispute is rejected
         else {
             // pay incentive to voters who rejected the dispute
             for (uint256 i; i < dispute.rejectionCount; i++) {
-                uint256 payoutIncentive = payIncentive(remainingIncentive);
-                dispute.rejectersList[i].transfer(payoutIncentive);
+                uint256 payoutIncentive = calculatePayoutIncentive(
+                    remainingIncentive
+                );
+                dispute.rejectersList[i].transfer(
+                    utils.gweiToWei(payoutIncentive)
+                );
                 paidIncentive = paidIncentive + payoutIncentive;
                 remainingIncentive = remainingIncentive - payoutIncentive;
             }
@@ -452,7 +500,7 @@ contract Rental {
 
         assert(remainingIncentive == dispute.totalIncentive - paidIncentive);
         // return remaining incentive to dispute creater
-        dispute.creator.transfer(remainingIncentive);
+        dispute.creator.transfer(utils.gweiToWei(remainingIncentive));
 
         if (dispute.creator == renterAddress) {
             rentalStatus = RentalStatus.RENTED;
@@ -462,25 +510,11 @@ contract Rental {
     }
 
     //----------------------------------helpers-------------------------------------//
-    function getDaysBetween(uint256 _time1, uint256 _time2)
+    function calculatePayoutIncentive(uint256 _incentive)
         internal
         pure
         returns (uint256)
     {
-        uint256 secondsBetween = _time2 - _time1;
-        uint256 daysBetween = secondsBetween / 60 / 60 / 24;
-        return daysBetween;
-    }
-
-    function toWei(uint256 _ether) internal pure returns (uint256) {
-        return _ether * 10**18;
-    }
-
-    function toEther(uint256 _wei) internal pure returns (uint256) {
-        return _wei / 10**18;
-    }
-
-    function payIncentive(uint256 _incentive) internal pure returns (uint256) {
         return (_incentive / 100) * 5;
     }
 }

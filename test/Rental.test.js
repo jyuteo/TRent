@@ -14,6 +14,14 @@ const Rental = contract.fromArtifact('Rental')
 const DateTime = contract.fromArtifact('DateTime')
 const Item = contract.fromArtifact('Item')
 
+function ethToGwei(_eth) {
+  return _eth * 10 ** 9
+}
+
+function ethToWei(_eth) {
+  return _eth * 10 ** 18
+}
+
 describe('Rental Contract', async () => {
   beforeEach(async () => {
     datetime = await DateTime.new()
@@ -24,7 +32,7 @@ describe('Rental Contract', async () => {
       name: 'itemName',
       collectionOrReturnAddress: 'testReturnAddress',
       description: 'testDescription',
-      rentPerDay: 1,
+      rentPerDay: ethToGwei(0.01), // in gwei
       maxAllowableLateDays: 5,
       multipleForLateFees: 2,
       isAvailableForRent: true,
@@ -32,8 +40,8 @@ describe('Rental Contract', async () => {
     }
     item = await Item.new(itemDetails)
 
-    let rentalFees = 6
-    let renterDeposit = 20
+    let rentalFees = ethToGwei(0.06)
+    let renterDeposit = ethToGwei(0.2)
     let start = await datetime.toTimestamp(2021, 8, 16)
     let end = await datetime.toTimestamp(2021, 8, 21)
     let numInstallment = 2
@@ -46,17 +54,15 @@ describe('Rental Contract', async () => {
       start,
       end,
       numInstallment,
-      { from: renterAddress, value: renterDeposit },
+      { from: renterAddress, value: ethToGwei(renterDeposit) },
     )
   })
 
   describe('Constructor', async () => {
     it('should have correct rental information', async () => {
       // rental
-      expect((await rental.rentalFees()).toString()).to.be.equal(
-        '6000000000000000000',
-      )
-      expect(Number(await rental.renterDeposit())).to.be.equal(20)
+      expect(Number(await rental.rentalFees())).to.be.equal(ethToGwei(0.06))
+      expect(Number(await rental.renterDeposit())).to.be.equal(ethToGwei(0.2))
       expect(await rental.start()).to.be.bignumber.equal(
         new BN(await datetime.toTimestamp(2021, 8, 16)),
       )
@@ -65,7 +71,7 @@ describe('Rental Contract', async () => {
       )
       expect(Number(await rental.numInstallment())).to.be.equal(2)
       expect(Number(await rental.rentalStatus())).to.be.equal(0)
-      expect(Number(await rental.rentPerDay())).to.be.equal(1)
+      expect(Number(await rental.rentPerDay())).to.be.equal(ethToGwei(0.01))
       expect(Number(await rental.maxAllowableLateDays())).to.be.equal(5)
       expect(Number(await rental.multipleForLateFees())).to.be.equal(2)
 
@@ -91,69 +97,68 @@ describe('Rental Contract', async () => {
   })
   describe('Paying and claiming', async () => {
     it('should allow renter to pay rental installment and calculate claimable rental fees correctly', async () => {
-      await rental.payRentalInstallment(2, {
+      await rental.payRentalInstallment(ethToGwei(0.02), {
         from: renterAddress,
-        value: 2 * 10 ** 18,
+        value: ethToWei(0.02),
       })
-      expect(Number(await rental.paidRentalFees())).to.be.equal(2)
-      expect(Number(await rental.remainingRentalFees())).to.be.equal(4)
-      expect(Number(await rental.claimableRentalFees())).to.be.equal(2)
+      expect(Number(await rental.paidRentalFees())).to.be.equal(ethToGwei(0.02))
+      expect(Number(await rental.remainingRentalFees())).to.be.equal(
+        ethToGwei(0.04),
+      )
+      expect(Number(await rental.claimableRentalFees())).to.be.equal(
+        ethToGwei(0.02),
+      )
       expect(Number(await rental.claimedRentalFees())).to.be.equal(0)
       expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
     })
     it('should not allow others to pay renter installment', async () => {
       await expectRevert(
-        rental.payRentalInstallment(2, {
+        rental.payRentalInstallment(ethToGwei(0.02), {
           from: otherAddress,
-          value: 2 * 10 ** 18,
+          value: ethToWei(0.02),
         }),
         'VM Exception while processing transaction: revert',
       )
     })
     it('should not allow renter to pay renter installment with incorrect value', async () => {
       await expectRevert(
-        rental.payRentalInstallment(2, {
+        rental.payRentalInstallment(ethToGwei(0.02), {
           from: renterAddress,
-          value: 3,
+          value: ethToWei(0.03),
         }),
         'VM Exception while processing transaction: revert',
       )
     })
     it('should allow renter to claim rental fees', async () => {
-      // total rental: 6, num installments: 2
-      // 1st installment: renter pays 2
-      await rental.payRentalInstallment(2, {
+      // total rental: 0.06 eth, num installments: 2
+      // 1st installment: renter pays 0.02 eth
+      await rental.payRentalInstallment(ethToGwei(0.02), {
         from: renterAddress,
-        value: 2 * 10 ** 18,
+        value: ethToWei(0.02),
       })
 
-      before = await balance.current(ownerAddress)
-      console.log(Number(before))
-      // await rental.claimRentalFees({ from: ownerAddress })
-      after = await balance.current(ownerAddress)
-      console.log(Number(after))
-      console.log(Number(after - before))
-      // expect(Number(await rental.claimableRentalFees())).to.be.equal(0)
-      // expect(Number(await rental.claimedRentalFees())).to.be.equal(2)
-      // expect(Number(await rental.paidRentalFees())).to.be.equal(2)
-      // expect(Number(await rental.remainingRentalFees())).to.be.equal(4)
-      // expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
+      before = Number(await balance.current(ownerAddress))
+      await rental.claimRentalFees({ from: ownerAddress })
+      after = Number(await balance.current(ownerAddress))
+      expect(after).to.be.greaterThan(before)
+      expect(Number(await rental.claimableRentalFees())).to.be.equal(
+        ethToGwei(0),
+      )
+      expect(Number(await rental.claimedRentalFees())).to.be.equal(
+        ethToGwei(0.02),
+      )
+      expect(Number(await rental.paidRentalFees())).to.be.equal(ethToGwei(0.02))
+      expect(Number(await rental.remainingRentalFees())).to.be.equal(
+        ethToGwei(0.04),
+      )
+      expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
     })
   })
   // internal functions, change the functions to public before testing
   // describe('Helpers', async () => {
-  // it('getDaysBetween', async () => {
-  //   const start = await datetime.toTimestamp(2021, 8, 16)
-  //   const end = await datetime.toTimestamp(2021, 8, 21)
-  //   const daysBetween = await rental.getDaysBetween(start, end, {
-  //     from: rental.address,
+  //   it('calculatePayoutIncentive', async () => {
+  //     const payoutIncentive = await rental.calculatePayoutIncentive(200)
+  //     expect(Number(payoutIncentive)).to.be.equal(10)
   //   })
-  //   expect(Number(daysBetween)).to.be.equal(5)
-  // })
-  // it('toWei', async () => {
-  //   const etherAmount = 6
-  //   const Wei = await rental.toWei(etherAmount)
-  //   expect(Number(Wei)).to.be.equal(etherAmount * 10 ** 18)
-  // })
   // })
 })

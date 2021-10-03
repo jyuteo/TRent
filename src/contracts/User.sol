@@ -2,7 +2,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "./Item.sol";
+// import "./Item.sol";
 import "./Rental.sol";
 
 contract User {
@@ -147,7 +147,7 @@ contract User {
         string calldata _review,
         Role _role // role of rater
     ) public restricted {
-        Item item = Item(_item);
+        // Item item = Item(_item);
         User rater = User(_raterUserContract);
         // Rental rental = Rental(_rentalContract);
         uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
@@ -166,9 +166,9 @@ contract User {
         reviews.push(newReview);
         reviewCount++;
 
-        if (_role == Role.RENTER) {
-            item.addItemReview(newReview);
-        }
+        // if (_role == Role.RENTER) {
+        //     item.addItemReview(newReview);
+        // }
 
         emit newReviewInput(rater.userAddress(), _rate, reviewCount);
     }
@@ -179,5 +179,9 @@ contract User {
             sum += reviews[i].rate;
         }
         return sum;
+    }
+
+    function setAsDishonest() public {
+        isDishonestUser = true;
     }
 }

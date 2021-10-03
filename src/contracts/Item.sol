@@ -3,28 +3,18 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./helpers/Utils.sol";
+import "./helpers/Structs.sol";
 import "./User.sol";
+import "./Rental.sol";
+import "./factory/RentalContractCreator.sol";
 
 contract Item {
-    Utils utils = new Utils();
+    Utils utils;
 
     enum ItemStatus {
         AVAILABLE,
         HIDDEN,
         DELETED
-    }
-
-    struct ItemDetails {
-        address ownerUserContract;
-        address payable ownerAddress;
-        string name;
-        string collectionOrReturnAddress;
-        string description;
-        uint256 rentPerDay; // in gwei
-        uint8 maxAllowableLateDays;
-        uint8 multipleForLateFees;
-        bool isAvailableForRent;
-        string[] mediaIPFSHashes;
     }
 
     struct RentalStartEnd {
@@ -34,7 +24,7 @@ contract Item {
 
     address public ownerUserContract;
     address public ownerAddress;
-    ItemDetails public itemDetails;
+    Structs.ItemDetails public itemDetails;
     ItemStatus public itemStatus;
 
     address[] public rentalContracts;
@@ -55,8 +45,14 @@ contract Item {
     );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
+    event rentalContractCreated(
+        address rentalContract,
+        address itemContract,
+        address renterAddress,
+        address ownerAddress
+    );
 
-    constructor(ItemDetails memory _itemDetails) {
+    constructor(Structs.ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
         ownerUserContract = itemDetails.ownerUserContract;
         ownerAddress = itemDetails.ownerAddress;
@@ -177,28 +173,54 @@ contract Item {
         );
     }
 
-    function addNewRenter(address _renter) public {
-        renters.push(_renter);
-        renterCount++;
-        isRenter[_renter] = true;
-    }
-
-    function handleNewRental(
-        address _newRentalContract,
+    function createRentalContract(
+        address _renterUserContract,
+        address payable _renterAddress,
+        uint256 _rentalFees,
+        uint256 _renterDeposit,
         uint256 _start,
-        uint256 _end
-    ) public onlyRenters {
-        rentalContracts.push(_newRentalContract);
-        rentalContractCount++;
+        uint256 _end,
+        uint8 _numInstallment
+    ) public payable {
+        require(
+            msg.sender == _renterAddress,
+            "Renter address does not match msg.sender"
+        );
+        RentalContractCreator rentalContractCreator;
+        Rental newRentalContract = rentalContractCreator.createRentalContract(
+            address(this),
+            itemDetails,
+            _renterUserContract,
+            _renterAddress,
+            _rentalFees,
+            _renterDeposit,
+            _start,
+            _end,
+            _numInstallment
+        );
+
+        rentalContracts.push(address(newRentalContract));
         rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
+        rentalContractCount++;
+
+        renters.push(_renterAddress);
+        isRenter[_renterAddress] = true;
+        renterCount++;
+
+        emit rentalContractCreated(
+            address(newRentalContract),
+            address(this),
+            _renterAddress,
+            ownerAddress
+        );
     }
 
-    function getItemDetails() public view returns (ItemDetails memory) {
-        return itemDetails;
-    }
+    // function getItemDetails() public view returns (ItemDetails memory) {
+    //     return itemDetails;
+    // }
 
-    function addItemReview(User.Review memory _review) public onlyRenters {
-        itemReviews.push(_review);
-        itemReviewCount++;
-    }
+    // function addItemReview(User.Review memory _review) public onlyRenters {
+    //     itemReviews.push(_review);
+    //     itemReviewCount++;
+    // }
 }

@@ -2,8 +2,10 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
+import "./User.sol";
 import "./Item.sol";
 import "./helpers/Utils.sol";
+import "./helpers/Structs.sol";
 
 contract Rental {
     Utils utils = new Utils();
@@ -15,6 +17,12 @@ contract Rental {
         END,
         OWNERDISPUTE,
         RENTERDISPUTE
+    }
+
+    enum DisputeType {
+        FakeOwnerProof,
+        FakeRenterProof,
+        ItemDamaged
     }
 
     struct Dispute {
@@ -31,13 +39,12 @@ contract Rental {
         mapping(uint256 => address payable) rejectersList;
         mapping(address => bool) isRejecter;
         address payable creator;
+        DisputeType disputeType;
     }
 
     //--All fees unit are in gwei--//
 
     address public itemContract;
-    Item public item;
-    Item.ItemDetails public itemDetails;
     uint256 public rentPerDay;
     uint8 public maxAllowableLateDays;
     uint8 public multipleForLateFees;
@@ -59,20 +66,12 @@ contract Rental {
     uint8 public remainingNumInstallment;
 
     address payable public ownerAddress;
-    address public ownerUserContract;
     uint256 public ownerDeposit;
     string[] public ownerProofOfTransfer; // IPFS hashes
 
     mapping(uint8 => Dispute) public disputes;
     uint8 public disputeCount;
     uint8 public disputePeriod = 3; // dispute will last for 3 days
-
-    event rentalContractCreated(
-        address renterUserContract,
-        address renterAddress,
-        address rentalContract,
-        uint256 renterDepositInGwei
-    );
 
     event itemRented(
         address itemContract,
@@ -100,6 +99,7 @@ contract Rental {
 
     constructor(
         address _itemContract,
+        Structs.ItemDetails memory _itemDetails,
         address _renterUserContract,
         address payable _renterAddress,
         uint256 _rentalFees,
@@ -114,13 +114,10 @@ contract Rental {
         );
 
         itemContract = _itemContract;
-        item = Item(_itemContract);
-        itemDetails = item.getItemDetails();
-        rentPerDay = itemDetails.rentPerDay;
-        maxAllowableLateDays = itemDetails.maxAllowableLateDays;
-        multipleForLateFees = itemDetails.multipleForLateFees;
-        ownerUserContract = itemDetails.ownerUserContract;
-        ownerAddress = itemDetails.ownerAddress;
+        rentPerDay = _itemDetails.rentPerDay;
+        maxAllowableLateDays = _itemDetails.maxAllowableLateDays;
+        multipleForLateFees = _itemDetails.multipleForLateFees;
+        ownerAddress = _itemDetails.ownerAddress;
 
         rentalStatus = RentalStatus.CREATED;
         renterUserContract = _renterUserContract;
@@ -135,13 +132,6 @@ contract Rental {
         remainingRentalFees = _rentalFees;
         paidRentalFees = 0;
         claimedRentalFees = 0;
-
-        emit rentalContractCreated(
-            _renterUserContract,
-            _renterAddress,
-            address(this),
-            _renterDeposit
-        );
     }
 
     modifier onlyOwner() {
@@ -276,7 +266,9 @@ contract Rental {
     // claim owner's deposit and return renter's deposit
     function settleDeposit() public onlyOwner {
         require(
-            rentalStatus == RentalStatus.RETURNED,
+            rentalStatus == RentalStatus.RETURNED ||
+                rentalStatus == RentalStatus.OWNERDISPUTE ||
+                rentalStatus == RentalStatus.RENTERDISPUTE,
             "Unable to claim payment with current rental status"
         );
         require(
@@ -284,20 +276,36 @@ contract Rental {
             "No remaining deposit to claim"
         );
         require(
-            remainingRentalFees == 0,
+            (rentalStatus == RentalStatus.RETURNED &&
+                remainingRentalFees == 0) ||
+                rentalStatus == RentalStatus.OWNERDISPUTE ||
+                rentalStatus == RentalStatus.RENTERDISPUTE,
             "Rental fees has not been fully settled by renter"
         );
-        require(paidRentalFees == rentalFees);
         require(
-            claimedRentalFees == rentalFees,
+            (paidRentalFees == rentalFees &&
+                rentalStatus == RentalStatus.RETURNED) ||
+                rentalStatus == RentalStatus.OWNERDISPUTE ||
+                rentalStatus == RentalStatus.RENTERDISPUTE
+        );
+        require(
+            (claimedRentalFees == rentalFees &&
+                rentalStatus == RentalStatus.RETURNED) ||
+                rentalStatus == RentalStatus.OWNERDISPUTE ||
+                rentalStatus == RentalStatus.RENTERDISPUTE,
             "Rental fees has not been fully claimed by owner"
         );
 
-        if (ownerDeposit > 0) {
+        if (rentalStatus == RentalStatus.OWNERDISPUTE) {
+            // owner gets all deposit if renter is dishonest
             ownerAddress.transfer(utils.gweiToWei(ownerDeposit));
-        }
-
-        if (renterDeposit > 0) {
+            ownerAddress.transfer(utils.gweiToWei(renterDeposit));
+        } else if (rentalStatus == RentalStatus.RENTERDISPUTE) {
+            // renter gets all deposit if owner is dishonest
+            renterAddress.transfer(utils.gweiToWei(ownerDeposit));
+            renterAddress.transfer(utils.gweiToWei(renterDeposit));
+        } else {
+            ownerAddress.transfer(utils.gweiToWei(ownerDeposit));
             renterAddress.transfer(utils.gweiToWei(renterDeposit));
         }
 
@@ -313,8 +321,8 @@ contract Rental {
             "Unable to pay late fees before rental end date"
         );
         require(
-            utils.getDaysBetween(end, block.timestamp) <= 5,
-            "Unable to pay late fees 5 days later than rental end date"
+            utils.getDaysBetween(end, block.timestamp) <= maxAllowableLateDays,
+            "Unable to pay late fees later than maximum allowable late days"
         );
         require(
             msg.value == utils.gweiToWei(_lateFees),
@@ -329,21 +337,36 @@ contract Rental {
         );
     }
 
+    function setUserAsDishonest(address _userAddress) public {
+        require(
+            _userAddress == renterAddress || _userAddress == ownerAddress,
+            "Invalid user to be set as dishonest"
+        );
+        User user = User(_userAddress);
+        user.setAsDishonest();
+    }
+
     function settleRentalAfterFiveLateDays() public payable onlyOwner {
         require(
-            block.timestamp > end + 5 * 24 * 60 * 60,
-            "Unable to settle rental before 5 late days"
+            block.timestamp > end + (maxAllowableLateDays * 24 * 60 * 60),
+            "Unable to settle rental before maximum allowable late days"
         );
         require(
             rentalStatus == RentalStatus.RENTED,
             "Unable to settle rental with current rental status"
         );
 
-        rentalStatus = RentalStatus.END;
+        // change item status
+        Item item = Item(itemContract);
         item.changeItemStatus(2); // DELETED
 
         // transfer all balance in the contract to owner
         ownerAddress.transfer(address(this).balance);
+
+        // set renter as dishonest user
+        setUserAsDishonest(renterAddress);
+
+        rentalStatus = RentalStatus.END;
     }
 
     // status == returned: if owner thinks that prove of return is fake
@@ -353,7 +376,8 @@ contract Rental {
         string memory _description,
         string[] memory _mediaIPFSHashes,
         uint256 _compensationAmount,
-        uint256 _totalIncentive
+        uint256 _totalIncentive,
+        DisputeType _disputeType
     ) public payable onlyOwner {
         require(
             msg.value == utils.gweiToWei(_totalIncentive),
@@ -366,6 +390,11 @@ contract Rental {
         require(
             _compensationAmount < renterDeposit,
             "Compensation requested by owner must be lower than renter's deposit"
+        );
+        require(
+            _disputeType == DisputeType.FakeRenterProof ||
+                _disputeType == DisputeType.ItemDamaged,
+            "Invalid distpute type"
         );
 
         rentalStatus = RentalStatus.OWNERDISPUTE;
@@ -380,6 +409,7 @@ contract Rental {
         newDispute.approvalCount = 0;
         newDispute.rejectionCount = 0;
         newDispute.creator = payable(msg.sender);
+        newDispute.disputeType == _disputeType;
 
         disputeCount++;
     }
@@ -390,7 +420,8 @@ contract Rental {
         string memory _description,
         string[] memory _mediaIPFSHashes,
         uint256 _compensationAmount,
-        uint256 _totalIncentive
+        uint256 _totalIncentive,
+        DisputeType _disputeType
     ) public payable onlyRenter {
         require(
             msg.value == utils.gweiToWei(_totalIncentive),
@@ -403,6 +434,10 @@ contract Rental {
         require(
             _compensationAmount < ownerDeposit,
             "Compensation requested by renter must be lower than owner's deposit"
+        );
+        require(
+            _disputeType == DisputeType.FakeOwnerProof,
+            "Invalid dispute type"
         );
 
         rentalStatus = RentalStatus.RENTERDISPUTE;
@@ -417,6 +452,7 @@ contract Rental {
         newDispute.approvalCount = 0;
         newDispute.rejectionCount = 0;
         newDispute.creator = payable(msg.sender);
+        newDispute.disputeType = _disputeType;
 
         disputeCount++;
     }
@@ -477,11 +513,25 @@ contract Rental {
                 paidIncentive = paidIncentive + payoutIncentive;
                 remainingIncentive = remainingIncentive - payoutIncentive;
             }
-            // pay compensation to dispute creator with renter deposit
+
+            // pay compensation to dispute creator with the other party's deposit
             dispute.creator.transfer(
                 utils.gweiToWei(dispute.compensationAmount)
             );
-            renterDeposit = renterDeposit - dispute.compensationAmount;
+            if (dispute.creator == renterAddress) {
+                ownerDeposit = ownerDeposit - dispute.compensationAmount;
+            } else {
+                renterDeposit = renterDeposit - dispute.compensationAmount;
+            }
+
+            // set dishonest user
+            if (dispute.disputeType == DisputeType.FakeOwnerProof) {
+                setUserAsDishonest(ownerAddress);
+            } else if (dispute.disputeType == DisputeType.FakeRenterProof) {
+                setUserAsDishonest(renterAddress);
+            }
+
+            settleDeposit();
         }
         // if dispute is rejected
         else {
@@ -498,18 +548,23 @@ contract Rental {
             }
         }
 
+        // return remaining incentive to dispute creator
         assert(remainingIncentive == dispute.totalIncentive - paidIncentive);
-        // return remaining incentive to dispute creater
         dispute.creator.transfer(utils.gweiToWei(remainingIncentive));
 
-        if (dispute.creator == renterAddress) {
+        if (dispute.disputeType == DisputeType.FakeOwnerProof) {
             rentalStatus = RentalStatus.RENTED;
-        } else if (dispute.creator == ownerAddress) {
+        } else if (dispute.disputeType == DisputeType.FakeRenterProof) {
             rentalStatus = RentalStatus.RETURNED;
+        } else if (dispute.disputeType == DisputeType.ItemDamaged) {
+            settleDeposit();
         }
     }
 
+    // resolveRenterDispute, resolveOwnerDsipute
+
     //----------------------------------helpers-------------------------------------//
+    // first person who votes correctly will get 5% of the remaining incentive
     function calculatePayoutIncentive(uint256 _incentive)
         internal
         pure

@@ -1,0 +1,129 @@
+> trent@1.0.0 truffle:migrate-ropsten
+> node_modules/.bin/truffle migrate --network ropsten
+
+
+Compiling your contracts...
+===========================
+✔ Fetching solc version list from solc-bin. Attempt #1
+> Compiling ./src/contracts/Item.sol
+> Compiling ./src/contracts/Migrations.sol
+> Compiling ./src/contracts/Rental.sol
+> Compiling ./src/contracts/User.sol
+> Compiling ./src/contracts/factory/ContractFactory.sol
+> Compiling ./src/contracts/factory/ItemContractCreator.sol
+> Compiling ./src/contracts/factory/RentalContractCreator.sol
+> Compiling ./src/contracts/factory/UserContractCreator.sol
+> Compiling ./src/contracts/helpers/DateTime.sol
+> Compiling ./src/contracts/helpers/Structs.sol
+> Compiling ./src/contracts/helpers/Utils.sol
+✔ Fetching solc version list from solc-bin. Attempt #1
+> Artifacts written to /Users/jyuteo/CodeProjects/TRent/src/abis
+> Compiled successfully using:
+   - solc: 0.8.9+commit.e5eed63a.Emscripten.clang
+
+
+
+Starting migrations...
+======================
+> Network name:    'ropsten'
+> Network id:      3
+> Block gas limit: 8000000 (0x7a1200)
+
+
+1_initial_migration.js
+======================
+
+   Deploying 'Migrations'
+   ----------------------
+   > transaction hash:    0x333691308feb6a4194af6a3dfb62c14f179694bfb93ef37754cf5b9cc656bbbf
+   > Blocks: 1            Seconds: 12
+   > contract address:    0x4A1f38b5c7310Cc3F7283Cf2F9595688256e4617
+   > block number:        11159570
+   > block timestamp:     1633316056
+   > account:             0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E
+   > balance:             4.256394012777535389
+   > gas used:            155222 (0x25e56)
+   > gas price:           2.425000005 gwei
+   > value sent:          0 ETH
+   > total cost:          0.00037641335077611 ETH
+
+
+   > Saving migration to chain.
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:     0.00037641335077611 ETH
+
+
+2_deploy.js
+===========
+
+   Deploying 'ItemContractCreator'
+   -------------------------------
+   > transaction hash:    0x2707feccd676382c2d223714f4748495686b07b45264e9cf24f962bf6dc20e23
+   > Blocks: 0            Seconds: 4
+   > contract address:    0x85DFe7bd9a8E2412C3D9a53C1674764C302E624d
+   > block number:        11159572
+   > block timestamp:     1633316096
+   > account:             0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E
+   > balance:             4.251561305442571044
+   > gas used:            2148091 (0x20c6fb)
+   > gas price:           2.425000005 gwei
+   > value sent:          0 ETH
+   > total cost:          0.005209120685740455 ETH
+
+
+   Deploying 'UserContractCreator'
+   -------------------------------
+   > transaction hash:    0x0c5c87392008e25bb7c4335c37f9dc9e50511b9adbe239b9c276eba7c1eadc30
+   > Blocks: 0            Seconds: 20
+   > contract address:    0xffbe7a251617cCe2d9E8CA12b1e89088384077Ba
+   > block number:        11159573
+   > block timestamp:     1633316106
+   > account:             0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E
+   > balance:             4.253576029396725114
+   > gas used:            1317277 (0x14199d)
+   > gas price:           2.425000005 gwei
+   > value sent:          0 ETH
+   > total cost:          0.003194396731586385 ETH
+
+
+   Deploying 'RentalContractCreator'
+   ---------------------------------
+   > transaction hash:    0x93b0de26e70a12c8c0e61001c96420455e7ed6287871775b5c3acb9b75d03a6a
+   > Blocks: 1            Seconds: 24
+   > contract address:    0xbaCbA4207ef972319781ed095EF1020b5B2eE2C6
+   > block number:        11159575
+   > block timestamp:     1633316161
+   > account:             0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E
+   > balance:             4.246402401656934129
+   > gas used:            4275474 (0x413d12)
+   > gas price:           2.425000005 gwei
+   > value sent:          0 ETH
+   > total cost:          0.01036802447137737 ETH
+
+
+   Deploying 'ContractFactory'
+   ---------------------------
+   > transaction hash:    0xb71a2e86601dd2d81cade175125db589fe824b3782a1e1d1e6346b544e15da8c
+   > Blocks: 3            Seconds: 40
+   > contract address:    0xAcd89509b03AC5542c6898c1e012ED027Ba6Fa23
+   > block number:        11159578
+   > block timestamp:     1633316192
+   > account:             0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E
+   > balance:             4.255246585225169559
+   > gas used:            628388 (0x996a4)
+   > gas price:           2.425000005 gwei
+   > value sent:          0 ETH
+   > total cost:          0.00152384090314194 ETH
+
+
+   > Saving migration to chain.
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:     0.02029538279184615 ETH
+
+
+Summary
+=======
+> Total deployments:   5
+> Final cost:          0.02067179614262226 ETH

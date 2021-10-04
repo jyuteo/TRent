@@ -20,11 +20,13 @@
 
 // const HDWalletProvider = require('@truffle/hdwallet-provider');
 //
-// const fs = require('fs');
+// const fs = require('fs');truffle console --network ropsten
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 require('babel-register')
 require('babel-polyfill')
+require('dotenv').config()
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 
 module.exports = {
   /**
@@ -48,6 +50,15 @@ module.exports = {
       host: '127.0.0.1', // Localhost (default: none)
       port: 7545, //Ganache  // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
+    },
+    ropsten: {
+      provider: () =>
+        new HDWalletProvider(process.env.MNEMONIC, process.env.ROPSTEN_URL),
+      network_id: 3,
+      from: '0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E',
+      skipDryRun: true,
+      timeoutBlocks: 200,
+      networkCheckTimeout: 999999,
     },
     // Another network with more advanced options...
     // advanced: {
@@ -84,6 +95,8 @@ module.exports = {
   contracts_directory: './src/contracts/',
   contracts_build_directory: './src/abis/',
 
+  plugins: ['truffle-contract-size'],
+
   // Configure your compilers
   compilers: {
     solc: {
@@ -92,7 +105,7 @@ module.exports = {
       settings: {
         // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
-          enabled: false,
+          enabled: true,
           runs: 200,
         },
         //  evmVersion: "byzantium"

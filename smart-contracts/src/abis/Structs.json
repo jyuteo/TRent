@@ -10,7 +10,7 @@
   "sourceMap": "70:391:9:-:0;;;;;;;;;;;;;;;-1:-1:-1;;;70:391:9;;;;;;;;;;;;;;;;;",
   "deployedSourceMap": "70:391:9:-:0;;;;;;;;",
   "source": "// SPDX-License-Identifier: GPL-3.0\n\npragma solidity >=0.7.0 <0.9.0;\n\nlibrary Structs {\n    struct ItemDetails {\n        address ownerUserContract;\n        address payable ownerAddress;\n        string name;\n        string collectionOrReturnAddress;\n        string description;\n        uint256 rentPerDay; // in gwei\n        uint8 maxAllowableLateDays;\n        uint8 multipleForLateFees;\n        bool isAvailableForRent;\n        string[] mediaIPFSHashes;\n    }\n}\n",
-  "sourcePath": "/Users/jyuteo/CodeProjects/TRent/src/contracts/helpers/Structs.sol",
+  "sourcePath": "/Users/jyuteo/CodeProjects/TRent/smart-contracts/src/contracts/helpers/Structs.sol",
   "ast": {
     "absolutePath": "project:/src/contracts/helpers/Structs.sol",
     "exportedSymbols": {
@@ -697,17 +697,9 @@
     "name": "solc",
     "version": "0.8.9+commit.e5eed63a.Emscripten.clang"
   },
-  "networks": {
-    "5777": {
-      "events": {},
-      "links": {},
-      "address": "0xDA27a75236CaEcdaE90B8C1125B1689154a26726",
-      "transactionHash": "0xfa58d24d0b93645704a66ec37cb4f95762b930ba1f05238c1120ebd261073288"
-    }
-  },
+  "networks": {},
   "schemaVersion": "3.4.3",
-  "updatedAt": "2021-10-03T12:56:10.583Z",
-  "networkType": "ethereum",
+  "updatedAt": "2021-10-04T03:15:34.205Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

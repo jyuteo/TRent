@@ -6,7 +6,8 @@ import "./helpers/Utils.sol";
 import "./helpers/Structs.sol";
 import "./User.sol";
 import "./Rental.sol";
-import "./factory/RentalContractCreator.sol";
+
+// import "./factory/RentalContractCreator.sol";
 
 contract Item {
     Utils utils;
@@ -45,12 +46,13 @@ contract Item {
     );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
-    event rentalContractCreated(
-        address rentalContract,
-        address itemContract,
-        address renterAddress,
-        address ownerAddress
-    );
+
+    // event rentalContractCreated(
+    //     address rentalContract,
+    //     address itemContract,
+    //     address renterAddress,
+    //     address ownerAddress
+    // );
 
     constructor(Structs.ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
@@ -76,6 +78,10 @@ contract Item {
     modifier onlyRenters() {
         require(isRenter[msg.sender], "Method is restricted to Renter");
         _;
+    }
+
+    function getItemDetails() public view returns (Structs.ItemDetails memory) {
+        return itemDetails;
     }
 
     function changeOwner(
@@ -173,47 +179,55 @@ contract Item {
         );
     }
 
-    function createRentalContract(
-        address _renterUserContract,
-        address payable _renterAddress,
-        uint256 _rentalFees,
-        uint256 _renterDeposit,
+    function handleNewRental(
+        address _newRentalContract,
         uint256 _start,
-        uint256 _end,
-        uint8 _numInstallment
-    ) public payable {
-        require(
-            msg.sender == _renterAddress,
-            "Renter address does not match msg.sender"
-        );
-        RentalContractCreator rentalContractCreator;
-        Rental newRentalContract = rentalContractCreator.createRentalContract(
-            address(this),
-            itemDetails,
-            _renterUserContract,
-            _renterAddress,
-            _rentalFees,
-            _renterDeposit,
-            _start,
-            _end,
-            _numInstallment
-        );
-
-        rentalContracts.push(address(newRentalContract));
+        uint256 _end
+    ) public {
+        rentalContracts.push(address(_newRentalContract));
         rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
-        rentalContractCount++;
-
-        renters.push(_renterAddress);
-        isRenter[_renterAddress] = true;
-        renterCount++;
-
-        emit rentalContractCreated(
-            address(newRentalContract),
-            address(this),
-            _renterAddress,
-            ownerAddress
-        );
     }
+    // function createRentalContract(
+    //     address _renterUserContract,
+    //     address payable _renterAddress,
+    //     uint256 _rentalFees,
+    //     uint256 _renterDeposit,
+    //     uint256 _start,
+    //     uint256 _end,
+    //     uint8 _numInstallment
+    // ) public payable {
+    //     require(
+    //         msg.sender == _renterAddress,
+    //         "Renter address does not match msg.sender"
+    //     );
+    //     // RentalContractCreator rentalContractCreator;
+    //     Rental newRentalContract = new Rental(
+    //         address(this),
+    //         itemDetails,
+    //         _renterUserContract,
+    //         _renterAddress,
+    //         _rentalFees,
+    //         _renterDeposit,
+    //         _start,
+    //         _end,
+    //         _numInstallment
+    //     );
+
+    //     rentalContracts.push(address(newRentalContract));
+    //     rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
+    //     rentalContractCount++;
+
+    //     renters.push(_renterAddress);
+    //     isRenter[_renterAddress] = true;
+    //     renterCount++;
+
+    //     emit rentalContractCreated(
+    //         address(newRentalContract),
+    //         address(this),
+    //         _renterAddress,
+    //         ownerAddress
+    //     );
+    // }
 
     // function getItemDetails() public view returns (ItemDetails memory) {
     //     return itemDetails;

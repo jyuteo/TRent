@@ -5,6 +5,9 @@ const ItemContractCreator = artifacts.require('ItemContractCreator')
 const UserContractCreator = artifacts.require('UserContractCreator')
 const RentalContractCreator = artifacts.require('RentalContractCreator')
 const ContractFactory = artifacts.require('ContractFactory')
+const Item = artifacts.require('Item')
+const User = artifacts.require('User')
+const Rental = artifacts.require('Rental')
 
 module.exports = async function (deployer) {
   // await deployer.deploy(DateTime)
@@ -13,5 +16,5 @@ module.exports = async function (deployer) {
   await deployer.deploy(ItemContractCreator)
   await deployer.deploy(UserContractCreator)
   await deployer.deploy(RentalContractCreator)
-  await deployer.deploy(ContractFactory)
+  // await deployer.deploy(ContractFactory)
 }

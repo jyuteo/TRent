@@ -5,7 +5,7 @@
   "scripts": {
     "truffle:console-ropsten": "node_modules/.bin/truffle console --network ropsten",
     "truffle:compile": "node_modules/.bin/truffle compile",
-    "truffle:migrate": "node_modules/.bin/truffle migrate",
+    "truffle:migrate": "node_modules/.bin/truffle migrate --reset",
     "truffle:contract-size": "node_modules/.bin/truffle run contract-size",
     "truffle:deploy-ropsten": "node_modules/.bin/truffle deploy --network ropsten",
     "truffle:migrate-ropsten": "node_modules/.bin/truffle migrate --network ropsten",

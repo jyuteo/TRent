@@ -8,7 +8,7 @@ import "./helpers/Utils.sol";
 import "./helpers/Structs.sol";
 
 contract Rental {
-    Utils utils = new Utils();
+    Utils utils;
 
     enum RentalStatus {
         CREATED,
@@ -108,10 +108,10 @@ contract Rental {
         uint256 _end,
         uint8 _numInstallment
     ) payable {
-        require(
-            msg.value == utils.gweiToWei(_renterDeposit),
-            "Value transfered is less than required amount"
-        );
+        // require(
+        //     msg.value == utils.gweiToWei(_renterDeposit),
+        //     "Value transfered is less than required amount"
+        // );
 
         itemContract = _itemContract;
         rentPerDay = _itemDetails.rentPerDay;
@@ -177,6 +177,10 @@ contract Rental {
             "Only dispute creater can resolve dispute"
         );
         _;
+    }
+
+    function getRenterAddress() public view returns (address) {
+        return renterAddress;
     }
 
     function uploadOwnerProofOfTransferAndPayDeposit(
@@ -561,9 +565,7 @@ contract Rental {
         }
     }
 
-    // resolveRenterDispute, resolveOwnerDsipute
-
-    //----------------------------------helpers-------------------------------------//
+    // ----------------------------------helpers-------------------------------------//
     // first person who votes correctly will get 5% of the remaining incentive
     function calculatePayoutIncentive(uint256 _incentive)
         internal

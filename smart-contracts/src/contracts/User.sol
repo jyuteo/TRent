@@ -77,6 +77,10 @@ contract User {
         _;
     }
 
+    function getUsername() public view returns (string memory) {
+        return username;
+    }
+
     function changeUsername(string calldata _newUsername) public onlyUser {
         username = _newUsername;
         emit usernameChanged(msg.sender, _newUsername);

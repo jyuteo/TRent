@@ -7,18 +7,18 @@ const ethereum = window.ethereum
 
 const userContractCreatorJSON = require('./abis/UserContractCreator.json')
 const userContractCreatorABI = userContractCreatorJSON.abi
-const userContractCreatorAddress = '0x0DEe9B1462d866B9576C598258B27FbFe72F2A15'
+const userContractCreatorAddress = '0xdC61b59f026E55eA27Ec176058d9Af4e0d8a3EeC'
 var userContractCreator
 
 const itemContractCreatorJSON = require('./abis/ItemContractCreator.json')
 const itemContractCreatorABI = itemContractCreatorJSON.abi
-const itemContractCreatorAddress = '0x11ed9973268d635fF00096968A7492960E72C5eA'
+const itemContractCreatorAddress = '0xF950e5c916F5Fd625dc6a493794C80b5f9165c02'
 var itemContractCreator
 
 const rentalContractCreatorJSON = require('./abis/RentalContractCreator.json')
 const rentalContractCreatorABI = rentalContractCreatorJSON.abi
 const rentalContractCreatorAddress =
-  '0x1E5fFF3f4cf312486b5106B934C5e3872E179b7E'
+  '0xDE0CE7f450Bf585105574a8Bc9d60A1f5E96B383'
 var rentalContractCreator
 
 const userJSON = require('./abis/User.json')
@@ -171,7 +171,7 @@ class App extends Component {
   getUser = async (e) => {
     await this.loadUserContract()
     let username = await this.state.userContract.methods.getUsername().call()
-    console.log(('username', username))
+    console.log('username', username)
   }
 
   createItemContract = async (e) => {
@@ -221,7 +221,7 @@ class App extends Component {
     let itemDetails = await this.state.itemContract.methods
       .getItemDetails()
       .call()
-    console.log(('itemDetails', itemDetails))
+    console.log('itemDetails', itemDetails)
   }
 
   createRentalContract = async (e) => {
@@ -234,9 +234,9 @@ class App extends Component {
 
         await this.state.rentalContractCreator.methods
           .createRentalContract(
-            '0x2681f467F6ca8C6B0e5322Cb070202fa122d31F5',
+            '0x9097f662310D176b6eB2f4e76C41146ecc6993aa',
             {
-              ownerUserContract: '0x7D6AB237bB55E4F630f44B2D7d2e2d61Fe206CDa',
+              ownerUserContract: '0x2493B5dcbb33De3983a15c4B94e6AbE8e2C632D9',
               ownerAddress: '0xe592ff4916d308ee7f52c6ef8c6ba2f187c736a0',
               name: 'testItemName',
               collectionOrReturnAddress: 'testCollectionAddress',
@@ -247,18 +247,16 @@ class App extends Component {
               isAvailableForRent: true,
               mediaIPFSHashes: ['a', 'b'],
             },
-            this.state.userContractAddress,
             this.state.account,
             10000,
             200,
             1633442907,
             1633529307,
-            1,
           )
           .send({
             from: this.state.account,
-            gas: 721975,
-            gasPrice: 30000000000,
+            gas: 1000000,
+            gasPrice: 20000000000,
             value: 200000000000,
           })
       } catch (err) {
@@ -281,7 +279,11 @@ class App extends Component {
     let renterAddress = await this.state.rentalContract.methods
       .getRenterAddress()
       .call()
-    console.log(('renterAddress', renterAddress))
+    let contractBalance = await this.state.rentalContract.methods
+      .getContractBalance()
+      .call()
+    console.log('renterAddress', renterAddress)
+    console.log('rentalContractBalance', contractBalance)
   }
 
   render() {

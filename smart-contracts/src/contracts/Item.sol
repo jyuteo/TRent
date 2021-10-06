@@ -7,10 +7,8 @@ import "./helpers/Structs.sol";
 import "./User.sol";
 import "./Rental.sol";
 
-// import "./factory/RentalContractCreator.sol";
-
 contract Item {
-    Utils utils;
+    using Utils for *;
 
     enum ItemStatus {
         AVAILABLE,
@@ -142,7 +140,7 @@ contract Item {
 
     function changeItemRentPerDay(uint256 _newRentPerDay) public onlyOwner {
         itemDetails.rentPerDay = _newRentPerDay;
-        string memory newRentPerDay = utils.uint2str(_newRentPerDay);
+        string memory newRentPerDay = Utils.uint2str(_newRentPerDay);
         emit itemDetailsChanged(
             address(this),
             "rentPerDay",
@@ -155,7 +153,7 @@ contract Item {
         onlyOwner
     {
         itemDetails.maxAllowableLateDays = _newMaxAllowableLateDays;
-        string memory newMaxAllowableLateDays = utils.uint2str(
+        string memory newMaxAllowableLateDays = Utils.uint2str(
             _newMaxAllowableLateDays
         );
         emit itemDetailsChanged(

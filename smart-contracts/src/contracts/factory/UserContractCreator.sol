@@ -26,10 +26,10 @@ contract UserContractCreator {
         string calldata _username,
         string calldata _deliveryAddress
     ) public {
-        // require(
-        //     userContractForUser[_userAddress] == address(0x0),
-        //     "User address already exists"
-        // );
+        require(
+            userContractForUser[_userAddress] == address(0x0),
+            "User address already exists"
+        );
         require(
             _userAddress == msg.sender,
             "Users can only create new account with their own address"

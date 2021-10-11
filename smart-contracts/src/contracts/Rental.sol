@@ -122,20 +122,20 @@ contract Rental {
         emit itemRented(itemContract, renterAddress, ownerAddress);
     }
 
-    // function uploadRenterProofOfReturn(string[] memory _renterProofOfReturn)
-    //     public
-    //     onlyRenter
-    // {
-    //     require(
-    //         rentalFeesPaid == rentalFees,
-    //         "Rental fees have to be paid before returning"
-    //     );
+    function uploadRenterProofOfReturn(string[] memory _renterProofOfReturn)
+        public
+        onlyRenter
+    {
+        require(
+            rentalFeesPaid == rentalFees,
+            "Rental fees have to be paid before returning"
+        );
 
-    //     renterProofOfReturn = _renterProofOfReturn;
-    //     rentalStatus = RentalStatus.RETURNED;
+        renterProofOfReturn = _renterProofOfReturn;
+        rentalStatus = RentalStatus.RETURNED;
 
-    //     emit itemReturned(itemContract, renterAddress, ownerAddress);
-    // }
+        emit itemReturned(itemContract, renterAddress, ownerAddress);
+    }
 
     function payRentalIncludingLateFees(uint256 _amount)
         public
@@ -176,26 +176,22 @@ contract Rental {
     }
 
     function settleRentalAfterFiveLateDays() public payable onlyOwner {
-        // require(
-        //     block.timestamp > end + (5 * 24 * 60 * 60),
-        //     "Unable to settle rental before 5 late days"
-        // );
-        // require(
-        //     rentalStatus == RentalStatus.RENTED,
-        //     "Unable to settle rental with current rental status"
-        // );
-
+        require(
+            block.timestamp > end + (5 * 24 * 60 * 60),
+            "Unable to settle rental before 5 late days"
+        );
+        require(
+            rentalStatus == RentalStatus.RENTED,
+            "Unable to settle rental with current rental status"
+        );
         // change item status
         Item item = Item(itemContract);
         item.changeItemStatus(2); // DELETED
-
-        // // transfer all balance in the contract to owner
-        // ownerAddress.transfer(address(this).balance);
-
-        // // set renter as dishonest user
-        // User user = User(renterAddress);
-        // user.setAsDishonest();
-
+        // transfer all balance in the contract to owner
+        ownerAddress.transfer(address(this).balance);
+        // set renter as dishonest user
+        User user = User(renterAddress);
+        user.setAsDishonest();
         rentalStatus = RentalStatus.END;
     }
 }

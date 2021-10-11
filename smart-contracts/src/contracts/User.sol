@@ -12,8 +12,8 @@ contract User {
     }
 
     struct RentalHistory {
-        address item; // address of the deployed smart contract for the item
-        address rental; // address of the deployed rental contract
+        address itemContract; // address of the deployed smart contract for the item
+        address rentalContract; // address of the deployed rental contract
         Role role;
         bool hasRated; // rate the opposite role in the contact
         uint256 start; // Unix epoch time
@@ -21,7 +21,7 @@ contract User {
     }
 
     struct Review {
-        address item;
+        address itemContract;
         address rentalContract;
         address raterUserContract;
         uint8 rate;
@@ -44,12 +44,12 @@ contract User {
     uint8 public borrowingCount;
     bool public isDishonestUser;
 
-    event usernameChanged(address indexed userAccount, string newUsername);
+    event usernameChanged(address indexed userAddress, string newUsername);
     event deliveryAddressChanged(
-        address indexed userAccount,
+        address indexed userAddress,
         string newDeliveryAddress
     );
-    event newReviewInput(address indexed from, uint8 rate, uint8 ratingCount);
+    event newReviewInput(address indexed from, uint8 rate, uint8 reviewCount);
 
     constructor(
         address _userAddress,
@@ -68,13 +68,21 @@ contract User {
     }
 
     modifier onlyUser() {
-        require(msg.sender == userAddress);
+        require(msg.sender == userAddress, "invalid user for this method");
         _;
     }
 
     modifier restricted() {
-        require(msg.sender != userAddress);
+        require(msg.sender != userAddress, "invalid user for this method");
         _;
+    }
+
+    function getUserAddress() public view returns (address) {
+        return userAddress;
+    }
+
+    function getDeliveryAddress() public view returns (string memory) {
+        return deliveryAddress;
     }
 
     function getUsername() public view returns (string memory) {
@@ -107,8 +115,8 @@ contract User {
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
-            item: _item,
-            rental: _rental,
+            itemContract: _item,
+            rentalContract: _rental,
             role: Role.OWNER,
             hasRated: false,
             start: _start,
@@ -129,8 +137,8 @@ contract User {
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
-            item: _item,
-            rental: _rental,
+            itemContract: _item,
+            rentalContract: _rental,
             role: Role.RENTER,
             hasRated: false,
             start: _start,
@@ -158,7 +166,7 @@ contract User {
         rater.setRentalHisotryHasRated(rentalIndexOfRater);
 
         Review memory newReview = Review({
-            item: _item,
+            itemContract: _item,
             rentalContract: _rentalContract,
             rate: _rate,
             raterUserContract: _raterUserContract,

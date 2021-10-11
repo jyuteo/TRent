@@ -7,18 +7,18 @@ const ethereum = window.ethereum
 
 const userContractCreatorJSON = require('./abis/UserContractCreator.json')
 const userContractCreatorABI = userContractCreatorJSON.abi
-const userContractCreatorAddress = '0xdC61b59f026E55eA27Ec176058d9Af4e0d8a3EeC'
+const userContractCreatorAddress = '0x77b8e1d6442f9188d3040249eFb3cAd33ad0C89C'
 var userContractCreator
 
 const itemContractCreatorJSON = require('./abis/ItemContractCreator.json')
 const itemContractCreatorABI = itemContractCreatorJSON.abi
-const itemContractCreatorAddress = '0xF950e5c916F5Fd625dc6a493794C80b5f9165c02'
+const itemContractCreatorAddress = '0x7484529fb5015F6426e41eAa4d87b8E8763D5cc2'
 var itemContractCreator
 
 const rentalContractCreatorJSON = require('./abis/RentalContractCreator.json')
 const rentalContractCreatorABI = rentalContractCreatorJSON.abi
 const rentalContractCreatorAddress =
-  '0xDE0CE7f450Bf585105574a8Bc9d60A1f5E96B383'
+  '0x50367E50B3d4ea6F105A52e165C9b62eF62a312A'
 var rentalContractCreator
 
 const userJSON = require('./abis/User.json')
@@ -170,7 +170,9 @@ class App extends Component {
 
   getUser = async (e) => {
     await this.loadUserContract()
-    let username = await this.state.userContract.methods.getUsername().call()
+    // let username = await this.state.userContract.methods.getUsername().call()
+    // console.log('username', username)
+    let username = await this.state.userContract.methods.username().call()
     console.log('username', username)
   }
 
@@ -234,9 +236,9 @@ class App extends Component {
 
         await this.state.rentalContractCreator.methods
           .createRentalContract(
-            '0x9097f662310D176b6eB2f4e76C41146ecc6993aa',
+            '0xe6925e8306EBF9d9Ef718fB6Ec58E0E301CE6fDd',
             {
-              ownerUserContract: '0x2493B5dcbb33De3983a15c4B94e6AbE8e2C632D9',
+              ownerUserContract: '0xcb6bD449f980C7A5C34E3a6C234CFED879E63523',
               ownerAddress: '0xe592ff4916d308ee7f52c6ef8c6ba2f187c736a0',
               name: 'testItemName',
               collectionOrReturnAddress: 'testCollectionAddress',
@@ -255,8 +257,8 @@ class App extends Component {
           )
           .send({
             from: this.state.account,
-            gas: 1000000,
-            gasPrice: 20000000000,
+            gas: 2000000,
+            gasPrice: 200000,
             value: 200000000000,
           })
       } catch (err) {

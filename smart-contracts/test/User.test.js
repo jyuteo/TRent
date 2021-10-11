@@ -1,86 +1,102 @@
-const { accounts, contract } = require('@openzeppelin/test-environment')
+import { EVM_REVERT } from './helpers/helpers.js'
+
+require('chai').use(require('chai-as-promised')).should()
+const UserContractCreator = artifacts.require('UserContractCreator')
+const User = artifacts.require('User')
+const DateTime = artifacts.require('DateTime')
+const truffleAssert = require('truffle-assertions')
+
+const { accounts } = require('@openzeppelin/test-environment')
 const [
-  userAddress,
-  anotherUserAddress,
-  raterAddress,
   rentalContractAddress,
-  anotherRentalContractAddress,
   itemContractAddress,
   anotherItemContractAddress,
+  anotherRentalContractAddress,
 ] = accounts
-const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
-const { expect } = require('chai')
 
-const User = contract.fromArtifact('User')
-const DateTime = contract.fromArtifact('DateTime')
-
-describe('User Contract', async () => {
-  let username = 'User1'
-  let deliveryAddress = 'testDeliveryAddress'
+contract('User contract', ([deployer, user1, user2, raterAddress]) => {
+  let userContractCreator, user, datetime
+  let username = 'testUsername'
+  let deliveryAddress = 'testAddress'
 
   beforeEach(async () => {
-    user = await User.new(userAddress, username, deliveryAddress, {
-      from: userAddress,
-    })
+    userContractCreator = await UserContractCreator.new({ from: deployer })
+
+    // create new User contract of user1
+    await userContractCreator.createUserContract(
+      user1,
+      username,
+      deliveryAddress,
+      {
+        from: user1,
+      },
+    )
+
+    let user1ContractAddress = await userContractCreator.userContractForUser(
+      user1,
+    )
+
+    user = await User.at(user1ContractAddress)
   })
 
   describe('Constructor', async () => {
     it('should have correct userAddress', async () => {
-      expect(await user.userAddress()).to.be.equal(userAddress)
+      expect(await user.getUserAddress()).to.be.equal(user1)
     })
 
     it('should have correct username', async () => {
-      expect(await user.username()).to.be.equal(username)
+      expect(await user.getUsername()).to.be.equal(username)
     })
 
     it('should have correct deliveryAddress', async () => {
-      expect(await user.deliveryAddress()).to.be.equal(deliveryAddress)
+      expect(await user.getDeliveryAddress()).to.be.equal(deliveryAddress)
     })
   })
 
   describe('Profile', async () => {
-    it('should let owner to change his/her own username', async () => {
+    it('should let user to change his/her own username', async () => {
       let newUsername = 'newUsername'
       const response = await user.changeUsername(newUsername, {
-        from: userAddress,
+        from: user1,
       })
-      expect(await user.username()).to.be.equal(newUsername)
-      expectEvent(response, 'usernameChanged', {
-        userAccount: userAddress,
-        newUsername: newUsername,
+      expect(await user.getUsername()).to.be.equal(newUsername)
+      truffleAssert.eventEmitted(response, 'usernameChanged', (ev) => {
+        return ev.userAddress === user1 && ev.newUsername === newUsername
       })
     })
 
     it('should not let anyone else to change username', async () => {
       let newUsername = 'newUsername'
-      await expectRevert(
-        user.changeUsername(newUsername, { from: anotherUserAddress }),
-        'VM Exception while processing transaction: revert',
-      )
-      expect(await user.username()).to.be.equal(username)
+      await user
+        .changeUsername(newUsername, {
+          from: user2,
+        })
+        .should.be.rejectedWith(EVM_REVERT) //invalid user
+      expect(await user.getUsername()).to.be.equal(username)
     })
 
-    it('should let owner to change his/her own deliveryAddress', async () => {
-      let newDeliveryAddress = 'newdeliveryAddress'
-      const response = await user.changeDeliveryAddress(newDeliveryAddress, {
-        from: userAddress,
-      })
-      expect(await user.deliveryAddress()).to.be.equal(newDeliveryAddress)
-      expectEvent(response, 'deliveryAddressChanged', {
-        userAccount: userAddress,
-        newDeliveryAddress: newDeliveryAddress,
-      })
-    })
-
-    it('should not let anyone else to change deliveryAddress', async () => {
+    it('should let user to change his/her own delivery address', async () => {
       let newDeliveryAddress = 'newDeliveryAddress'
-      await expectRevert(
-        user.changeDeliveryAddress(newDeliveryAddress, {
-          from: anotherUserAddress,
-        }),
-        'VM Exception while processing transaction: revert',
-      )
-      expect(await user.deliveryAddress()).to.be.equal(deliveryAddress)
+      const response = await user.changeDeliveryAddress(newDeliveryAddress, {
+        from: user1,
+      })
+      expect(await user.getDeliveryAddress()).to.be.equal(newDeliveryAddress)
+      truffleAssert.eventEmitted(response, 'deliveryAddressChanged', (ev) => {
+        return (
+          ev.userAddress === user1 &&
+          ev.newDeliveryAddress === newDeliveryAddress
+        )
+      })
+    })
+
+    it('should not let anyone else to change delivery address', async () => {
+      let newDeliveryAddress = 'newDeliveryAddress'
+      await user
+        .changeDeliveryAddress(newDeliveryAddress, {
+          from: user2,
+        })
+        .should.be.rejectedWith(EVM_REVERT) //invalid user
+      expect(await user.getDeliveryAddress()).to.be.equal(deliveryAddress)
     })
   })
 
@@ -91,8 +107,8 @@ describe('User Contract', async () => {
 
     it('can add new lending to rental histories', async () => {
       // no rental history in the beginning
-      expect(await user.lendingCount()).to.be.bignumber.equal(new BN(0))
-      expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(0))
+      expect(Number(await user.lendingCount())).to.eq(0)
+      expect(Number(await user.rentalHistoryCount())).to.eq(0)
 
       let start = await datetime.toTimestamp(2021, 8, 16)
       let end = await datetime.toTimestamp(2021, 8, 21)
@@ -105,26 +121,28 @@ describe('User Contract', async () => {
       )
 
       // increase lending history count correctly
-      expect(await user.lendingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(1))
+      expect(Number(await user.lendingCount())).to.eq(1)
+      expect(Number(await user.rentalHistoryCount())).to.eq(1)
       expect(
-        await user.rentalIndexInRentalHistory(itemContractAddress),
-      ).to.be.bignumber.equal(new BN(0))
+        Number(await user.rentalIndexInRentalHistory(itemContractAddress)),
+      ).to.eq(0)
 
       // add lending to rental history correctly
       let firstLendingHistory = await user.rentalHistories(0)
-      expect(firstLendingHistory.item).to.be.equal(itemContractAddress)
-      expect(firstLendingHistory.rental).to.be.equal(rentalContractAddress)
+      expect(firstLendingHistory.itemContract).to.be.equal(itemContractAddress)
+      expect(firstLendingHistory.rentalContract).to.be.equal(
+        rentalContractAddress,
+      )
       expect(firstLendingHistory.role.toString()).to.be.equal('0') // Role.OWNER
       expect(firstLendingHistory.hasRated).to.be.equal(false)
-      expect(firstLendingHistory.start).to.be.bignumber.equal(new BN(start))
-      expect(firstLendingHistory.end).to.be.bignumber.equal(new BN(end))
+      expect(Number(firstLendingHistory.start)).to.eq(Number(start))
+      expect(Number(firstLendingHistory.end)).to.eq(Number(end))
     })
 
     it('can add new borrowing to rental histories', async () => {
       // no rental history in the beginning
-      expect(await user.borrowingCount()).to.be.bignumber.equal(new BN(0))
-      expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(0))
+      expect(Number(await user.borrowingCount())).to.eq(0)
+      expect(Number(await user.rentalHistoryCount())).to.eq(0)
 
       let start = await datetime.toTimestamp(2021, 8, 16)
       let end = await datetime.toTimestamp(2021, 8, 21)
@@ -136,34 +154,50 @@ describe('User Contract', async () => {
         end,
       )
 
-      // increase borrowing count correctly
-      expect(await user.borrowingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(1))
+      // increase lending history count correctly
+      expect(Number(await user.borrowingCount())).to.eq(1)
+      expect(Number(await user.rentalHistoryCount())).to.eq(1)
       expect(
-        await user.rentalIndexInRentalHistory(itemContractAddress),
-      ).to.be.bignumber.equal(new BN(0))
+        Number(await user.rentalIndexInRentalHistory(itemContractAddress)),
+      ).to.eq(0)
 
-      // add borrowing to rental history correctly
+      // add lending to rental history correctly
       let firstBorrowingHistory = await user.rentalHistories(0)
-      expect(firstBorrowingHistory.item).to.be.equal(itemContractAddress)
-      expect(firstBorrowingHistory.rental).to.be.equal(rentalContractAddress)
-      expect(firstBorrowingHistory.role.toString()).to.be.equal('1') //Role.RENTER
+      expect(firstBorrowingHistory.itemContract).to.be.equal(
+        itemContractAddress,
+      )
+      expect(firstBorrowingHistory.rentalContract).to.be.equal(
+        rentalContractAddress,
+      )
+      expect(firstBorrowingHistory.role.toString()).to.be.equal('1') // Role.RENTER
       expect(firstBorrowingHistory.hasRated).to.be.equal(false)
-      expect(firstBorrowingHistory.start).to.be.bignumber.equal(new BN(start))
-      expect(firstBorrowingHistory.end).to.be.bignumber.equal(new BN(end))
+      expect(Number(firstBorrowingHistory.start)).to.eq(Number(start))
+      expect(Number(firstBorrowingHistory.end)).to.eq(Number(end))
     })
   })
 
   describe('Input rating', async () => {
+    let raterContractAddress, rater
+
     beforeEach(async () => {
       datetime = await DateTime.new()
-      rater = await User.new(
+
+      await userContractCreator.createUserContract(
         raterAddress,
         'raterUsername',
         'raterDeliveryAddress',
-        { from: raterAddress },
+        {
+          from: raterAddress,
+        },
       )
+
+      raterContractAddress = await userContractCreator.userContractForUser(
+        raterAddress,
+      )
+
+      rater = await User.at(raterContractAddress)
     })
+
     it('should allow others to rate user', async () => {
       // Add 1 previous rental history (lending) for rater
       let start1 = await datetime.toTimestamp(2021, 8, 1)
@@ -188,10 +222,14 @@ describe('User Contract', async () => {
       )
 
       // User has 1 lending history at this stage
-      expect(await user.borrowingCount()).to.be.bignumber.equal(new BN(0))
-      expect(await user.lendingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(1))
-      expect(await user.ratingCount()).to.be.bignumber.equal(new BN(0))
+      expect(Number(await user.borrowingCount())).to.eq(0)
+      expect(Number(await user.lendingCount())).to.eq(1)
+      expect(Number(await user.rentalHistoryCount())).to.eq(1)
+      expect(Number(await user.reviewCount())).to.eq(0)
+      // expect(await user.borrowingCount()).to.be.bignumber.equal(new BN(0))
+      // expect(await user.lendingCount()).to.be.bignumber.equal(new BN(1))
+      // expect(await user.rentalHistoryCount()).to.be.bignumber.equal(new BN(1))
+      // expect(await user.ratingCount()).to.be.bignumber.equal(new BN(0))
 
       // Add corresponding borrowing history for rater
       await rater.addNewBorrowing(
@@ -202,15 +240,19 @@ describe('User Contract', async () => {
       )
 
       // Rater has 1 lending history and 1 borrowing history at this stage
-      expect(await rater.borrowingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await rater.lendingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await rater.rentalHistoryCount()).to.be.bignumber.equal(new BN(2))
+      expect(Number(await rater.borrowingCount())).to.eq(1)
+      expect(Number(await rater.lendingCount())).to.eq(1)
+      expect(Number(await rater.rentalHistoryCount())).to.eq(2)
+      // expect(await rater.borrowingCount()).to.be.bignumber.equal(new BN(1))
+      // expect(await rater.lendingCount()).to.be.bignumber.equal(new BN(1))
+      // expect(await rater.rentalHistoryCount()).to.be.bignumber.equal(new BN(2))
 
       let rate = 5
       let review = 'testReview'
-      let response = await user.inputRating(
+      let response = await user.inputReview(
         itemContractAddress,
-        rater.address,
+        rentalContractAddress,
+        raterContractAddress,
         rate,
         review,
         1, // RENTER
@@ -227,94 +269,35 @@ describe('User Contract', async () => {
       // update RentalHistory.hasRated correctly
       expect(rentalIndexOfUser).to.be.equal(0)
       expect(rentalIndexOfRater).to.be.equal(1)
+
       let userRentalHistory = await user.rentalHistories(rentalIndexOfUser)
-      let raterRrentalHistory = await rater.rentalHistories(rentalIndexOfRater)
-      expect(userRentalHistory.hasRated).to.be.equal(false)
-      expect(raterRrentalHistory.hasRated).to.be.equal(true)
-      expectEvent(response, 'newRatingInput', {
-        from: raterAddress,
-        rate: new BN(rate),
-        ratingCount: new BN(1),
+      let raterRentalHistory = await rater.rentalHistories(rentalIndexOfRater)
+      expect(userRentalHistory.hasRated).to.be.equal(false) // user has not rate as owner
+      expect(raterRentalHistory.hasRated).to.be.equal(true) // rater has rated as a renter
+      // expectEvent(response, 'newRatingInput', {
+      //   from: raterAddress,
+      //   rate: new BN(rate),
+      //   ratingCount: new BN(1),
+      // })
+      truffleAssert.eventEmitted(response, 'newReviewInput', (ev) => {
+        return (
+          ev.from === raterAddress &&
+          Number(ev.rate) === rate &&
+          Number(ev.reviewCount) === 1
+        )
       })
 
       // correct rating added
-      let ratingCount = await user.ratingCount()
-      expect(ratingCount).to.be.bignumber.equal(new BN(1))
+      let reviewCount = await user.reviewCount()
+      expect(Number(reviewCount)).to.eq(1)
 
-      let newRating = await user.ratings(ratingCount - 1)
-      expect(newRating.item).to.be.equal(itemContractAddress)
-      expect(newRating.rate).to.be.bignumber.equal(new BN(rate))
-      expect(newRating.rater).to.be.equal(await rater.userAddress())
-      expect(newRating.review).to.be.equal(review)
-      expect(newRating.role).to.be.bignumber.equal(new BN(1))
-    })
-
-    it('should not let user to rate him/herself', async () => {
-      let rate = 5
-      let review = 'testReview'
-      await expectRevert(
-        user.inputRating(itemContractAddress, rater.address, rate, review, 1, {
-          from: userAddress,
-        }),
-        'VM Exception while processing transaction: revert',
-      )
-    })
-
-    it('should sum up all ratings correctly', async () => {
-      // Add mock lending history for rater (rater borrows from user)
-      let start1 = await datetime.toTimestamp(2021, 8, 1)
-      let end1 = await datetime.toTimestamp(2021, 8, 2)
-
-      await rater.addNewLending(
-        itemContractAddress,
-        rentalContractAddress,
-        start1,
-        end1,
-      )
-
-      // Add mock borowing history for rater (rater lends to user)
-      let start2 = await datetime.toTimestamp(2021, 8, 16)
-      let end2 = await datetime.toTimestamp(2021, 8, 21)
-
-      await rater.addNewBorrowing(
-        anotherItemContractAddress,
-        anotherRentalContractAddress,
-        start2,
-        end2,
-      )
-
-      // Rater has 1 lending history and 1 borrowing history at this stage
-      expect(await rater.borrowingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await rater.lendingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await rater.rentalHistoryCount()).to.be.bignumber.equal(new BN(2))
-
-      // Rater rates first item
-      let rate1 = 5
-      let review1 = 'testReview1'
-      await user.inputRating(
-        itemContractAddress,
-        rater.address,
-        rate1,
-        review1,
-        0, // OWNER
-        { from: raterAddress },
-      )
-      expect(await user.ratingCount()).to.be.bignumber.equal(new BN(1))
-      expect(await user.getRatingsSum()).to.be.bignumber.equal(new BN(5))
-
-      // Rater rates second item
-      let rate2 = 4
-      let review2 = 'testReview2'
-      await user.inputRating(
-        anotherItemContractAddress,
-        rater.address,
-        rate2,
-        review2,
-        1, // RENTER
-        { from: raterAddress },
-      )
-      expect(await user.ratingCount()).to.be.bignumber.equal(new BN(2))
-      expect(await user.getRatingsSum()).to.be.bignumber.equal(new BN(9))
+      let newReview = await user.reviews(reviewCount - 1)
+      expect(newReview.itemContract).to.be.equal(itemContractAddress)
+      expect(Number(newReview.rate)).to.eq(rate)
+      expect(newReview.raterUserContract).to.be.equal(raterContractAddress)
+      expect(newReview.rentalContract).to.be.equal(rentalContractAddress)
+      expect(newReview.review).to.be.equal(review)
+      expect(Number(newReview.role)).to.eq(1)
     })
   })
 })

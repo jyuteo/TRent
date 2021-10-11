@@ -53,7 +53,12 @@ contract RentalContractCreator {
         rentalContractCount++;
 
         Item item = Item(_itemContract);
-        item.handleNewRental(address(newRentalContract), _start, _end);
+        item.handleNewRental(
+            address(newRentalContract),
+            _start,
+            _end,
+            _renterAddress
+        );
 
         emit rentalContractCreated(
             address(newRentalContract),

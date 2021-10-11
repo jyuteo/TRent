@@ -34,8 +34,8 @@ contract Item {
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
 
-    User.Review[] public itemReviews;
-    uint8 public itemReviewCount;
+    // User.Review[] public itemReviews;
+    // uint8 public itemReviewCount;
 
     event itemOwnerChanged(
         address item,
@@ -64,8 +64,8 @@ contract Item {
         }
 
         rentalContractCount = 0;
-        renterCount = 0;
-        itemReviewCount = 0;
+        // renterCount = 0;
+        // itemReviewCount = 0;
     }
 
     modifier onlyOwner() {
@@ -73,10 +73,10 @@ contract Item {
         _;
     }
 
-    modifier onlyRenters() {
-        require(isRenter[msg.sender], "Method is restricted to Renter");
-        _;
-    }
+    // modifier onlyRenters() {
+    //     require(isRenter[msg.sender], "Method is restricted to Renter");
+    //     _;
+    // }
 
     function getItemDetails() public view returns (Structs.ItemDetails memory) {
         return itemDetails;
@@ -180,10 +180,17 @@ contract Item {
     function handleNewRental(
         address _newRentalContract,
         uint256 _start,
-        uint256 _end
+        uint256 _end,
+        address _renterAddress
     ) public {
         rentalContracts.push(address(_newRentalContract));
+        rentalContractCount++;
+
         rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
+
+        renters.push(_renterAddress);
+        isRenter[_renterAddress] = true;
+        renterCount++;
     }
     // function createRentalContract(
     //     address _renterUserContract,

@@ -178,10 +178,6 @@ contract User {
         reviews.push(newReview);
         reviewCount++;
 
-        // if (_role == Role.RENTER) {
-        //     item.addItemReview(newReview);
-        // }
-
         emit newReviewInput(rater.userAddress(), _rate, reviewCount);
     }
 

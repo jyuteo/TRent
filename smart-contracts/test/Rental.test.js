@@ -13,8 +13,6 @@ const UserContractCreator = artifacts.require('UserContractCreator')
 const ItemContractCreator = artifacts.require('ItemContractCreator')
 const RentalContractCreator = artifacts.require('RentalContractCreator')
 
-// const { accounts } = require('@openzeppelin/test-environment')
-
 contract('Rental contract', ([deployer, ownerAddress, renterAddress]) => {
   let userContractCreator,
     owner,

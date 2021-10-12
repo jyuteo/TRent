@@ -7,18 +7,18 @@ const ethereum = window.ethereum
 
 const userContractCreatorJSON = require('./abis/UserContractCreator.json')
 const userContractCreatorABI = userContractCreatorJSON.abi
-const userContractCreatorAddress = '0xA1069cDA422ac5692ed2026c8bb91A49759e095c'
+const userContractCreatorAddress = '0xeC383AF51102bc6374D320dD2E893B7c6946416A'
 var userContractCreator
 
 const itemContractCreatorJSON = require('./abis/ItemContractCreator.json')
 const itemContractCreatorABI = itemContractCreatorJSON.abi
-const itemContractCreatorAddress = '0xD3B79F1E40D61da0b29e090B7964a59e7C33D7D6'
+const itemContractCreatorAddress = '0x9A130c847d3Efd5a82b32417AbE4A1e72FB3d311'
 var itemContractCreator
 
 const rentalContractCreatorJSON = require('./abis/RentalContractCreator.json')
 const rentalContractCreatorABI = rentalContractCreatorJSON.abi
 const rentalContractCreatorAddress =
-  '0x4E9B58a76981FcaCE0ce7ff420b697555E08b891'
+  '0x2956028a2EAECf18caD34b3D0ED5F294e1Fd029A'
 var rentalContractCreator
 
 const userJSON = require('./abis/User.json')
@@ -236,9 +236,9 @@ class App extends Component {
 
         await this.state.rentalContractCreator.methods
           .createRentalContract(
-            '0xd222462d409308811cD0a4841644478DF326C4E2',
+            '0xDd722ab15E0d83968c439AA29517e8F61Fa46378',
             {
-              ownerUserContract: '0x668e75639B0d7a6e3e664cCC4FBCc99754e885aa',
+              ownerUserContract: '0x2a80427b810f9cFf9E51e1Df99637790ba38f2dA',
               ownerAddress: '0x8e8eee6e9e37ccdda5735e26260dbbd720440784',
               name: 'testItemName',
               collectionOrReturnAddress: 'testCollectionAddress',
@@ -249,7 +249,7 @@ class App extends Component {
               isAvailableForRent: true,
               mediaIPFSHashes: ['a', 'b'],
             },
-            '0xe3d0B1c451606c2E5a6bca4fdfa781E07b595230',
+            '0x93934C72A7282d1A5B16f00a4b6381F794d5D6EB',
             this.state.account,
             10000,
             200,

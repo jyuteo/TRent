@@ -34,9 +34,6 @@ contract Item {
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
 
-    // User.Review[] public itemReviews;
-    // uint8 public itemReviewCount;
-
     event itemOwnerChanged(
         address item,
         address newOwnerUserContract,
@@ -44,13 +41,6 @@ contract Item {
     );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
-
-    // event rentalContractCreated(
-    //     address rentalContract,
-    //     address itemContract,
-    //     address renterAddress,
-    //     address ownerAddress
-    // );
 
     constructor(Structs.ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
@@ -64,19 +54,12 @@ contract Item {
         }
 
         rentalContractCount = 0;
-        // renterCount = 0;
-        // itemReviewCount = 0;
     }
 
     modifier onlyOwner() {
         require(msg.sender == ownerAddress, "Method is restricted to Owner");
         _;
     }
-
-    // modifier onlyRenters() {
-    //     require(isRenter[msg.sender], "Method is restricted to Renter");
-    //     _;
-    // }
 
     function getItemDetails() public view returns (Structs.ItemDetails memory) {
         return itemDetails;
@@ -192,54 +175,4 @@ contract Item {
         isRenter[_renterAddress] = true;
         renterCount++;
     }
-    // function createRentalContract(
-    //     address _renterUserContract,
-    //     address payable _renterAddress,
-    //     uint256 _rentalFees,
-    //     uint256 _renterDeposit,
-    //     uint256 _start,
-    //     uint256 _end,
-    //     uint8 _numInstallment
-    // ) public payable {
-    //     require(
-    //         msg.sender == _renterAddress,
-    //         "Renter address does not match msg.sender"
-    //     );
-    //     // RentalContractCreator rentalContractCreator;
-    //     Rental newRentalContract = new Rental(
-    //         address(this),
-    //         itemDetails,
-    //         _renterUserContract,
-    //         _renterAddress,
-    //         _rentalFees,
-    //         _renterDeposit,
-    //         _start,
-    //         _end,
-    //         _numInstallment
-    //     );
-
-    //     rentalContracts.push(address(newRentalContract));
-    //     rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
-    //     rentalContractCount++;
-
-    //     renters.push(_renterAddress);
-    //     isRenter[_renterAddress] = true;
-    //     renterCount++;
-
-    //     emit rentalContractCreated(
-    //         address(newRentalContract),
-    //         address(this),
-    //         _renterAddress,
-    //         ownerAddress
-    //     );
-    // }
-
-    // function getItemDetails() public view returns (ItemDetails memory) {
-    //     return itemDetails;
-    // }
-
-    // function addItemReview(User.Review memory _review) public onlyRenters {
-    //     itemReviews.push(_review);
-    //     itemReviewCount++;
-    // }
 }

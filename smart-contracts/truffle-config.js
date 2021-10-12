@@ -50,7 +50,7 @@ module.exports = {
       host: '127.0.0.1', // Localhost (default: none)
       port: 7545, //Ganache  // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
-      from: '0xe592Ff4916d308ee7f52C6eF8C6BA2F187C736a0',
+      from: '0x8e8Eee6e9e37Ccdda5735E26260dbBD720440784',
       gas: 6721974, // Gas sent with each transaction (default: ~6700000)
       gasPrice: 20000000000,
     },

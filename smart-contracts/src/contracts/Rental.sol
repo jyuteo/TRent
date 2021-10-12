@@ -15,29 +15,28 @@ contract Rental {
         CREATED,
         RENTED,
         RETURNED,
-        END,
-        OWNERDISPUTE,
-        RENTERDISPUTE
+        END
     }
 
     //--All fees unit are in gwei--//
 
-    address private itemContract;
-    uint256 private rentPerDay;
+    address public itemContract;
+    uint256 public rentPerDay;
 
-    RentalStatus private rentalStatus;
-    address payable private renterAddress;
-    uint256 private renterDeposit;
-    uint256 private start;
-    uint256 private end;
-    string[] private renterProofOfReturn; // IPFS hashes
+    RentalStatus public rentalStatus;
+    address public renterUserContractAddress;
+    address payable public renterAddress;
+    uint256 public renterDeposit;
+    uint256 public start;
+    uint256 public end;
+    string[] public renterProofOfReturn; // IPFS hashes
 
-    uint256 private rentalFees;
-    uint256 private rentalFeesPaid;
+    uint256 public rentalFees;
+    uint256 public rentalFeesPaid;
 
-    address payable private ownerAddress;
-    uint256 private ownerDeposit;
-    string[] private ownerProofOfTransfer; // IPFS hashes
+    address payable public ownerAddress;
+    uint256 public ownerDeposit;
+    string[] public ownerProofOfTransfer; // IPFS hashes
 
     event itemRented(
         address itemContract,
@@ -56,6 +55,7 @@ contract Rental {
     constructor(
         address _itemContract,
         Structs.ItemDetails memory _itemDetails,
+        address _renterUserContractAddress,
         address payable _renterAddress,
         uint256 _rentalFees,
         uint256 _renterDeposit,
@@ -72,6 +72,7 @@ contract Rental {
         ownerAddress = _itemDetails.ownerAddress;
 
         rentalStatus = RentalStatus.CREATED;
+        renterUserContractAddress = _renterUserContractAddress;
         renterAddress = _renterAddress;
         renterDeposit = _renterDeposit;
         start = _start;
@@ -127,7 +128,7 @@ contract Rental {
         onlyRenter
     {
         require(
-            rentalFeesPaid == rentalFees,
+            rentalFeesPaid >= rentalFees,
             "Rental fees have to be paid before returning"
         );
 
@@ -150,15 +151,19 @@ contract Rental {
             msg.value >= Utils.gweiToWei(rentalFees),
             "Rental paid less than required amount"
         );
+        require(
+            rentalStatus == RentalStatus.RENTED,
+            "Invalid rental status for method"
+        );
 
-        rentalFeesPaid = _amount;
+        rentalFeesPaid += _amount;
     }
 
     // owner gets back deposit and receives rental fees paid, renter gets back deposit
     function settleDeposit() public onlyOwner {
         require(
             rentalStatus == RentalStatus.RETURNED &&
-                rentalFeesPaid == rentalFees,
+                rentalFeesPaid >= rentalFees,
             "Unable to claim payment with current rental status"
         );
         require(
@@ -177,10 +182,6 @@ contract Rental {
 
     function settleRentalAfterFiveLateDays() public payable onlyOwner {
         require(
-            block.timestamp > end + (5 * 24 * 60 * 60),
-            "Unable to settle rental before 5 late days"
-        );
-        require(
             rentalStatus == RentalStatus.RENTED,
             "Unable to settle rental with current rental status"
         );
@@ -190,7 +191,7 @@ contract Rental {
         // transfer all balance in the contract to owner
         ownerAddress.transfer(address(this).balance);
         // set renter as dishonest user
-        User user = User(renterAddress);
+        User user = User(renterUserContractAddress);
         user.setAsDishonest();
         rentalStatus = RentalStatus.END;
     }

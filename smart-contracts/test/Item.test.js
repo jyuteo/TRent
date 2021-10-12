@@ -9,7 +9,7 @@ const truffleAssert = require('truffle-assertions')
 const { accounts } = require('@openzeppelin/test-environment')
 const [ownerContractAddress, rentalContractAddress] = accounts
 
-contract('ItemContractCreator', ([deployer, owner, renter]) => {
+contract('Item contract', ([deployer, owner, renter]) => {
   let itemContractCreator, item, itemContractAddress
 
   beforeEach(async () => {
@@ -84,7 +84,7 @@ contract('ItemContractCreator', ([deployer, owner, renter]) => {
       const start = await datetime.toTimestamp(2021, 8, 16)
       const end = await datetime.toTimestamp(2021, 8, 20)
 
-      await item.handleNewRental(rentalContractAddress, start, end, {
+      await item.handleNewRental(rentalContractAddress, start, end, renter, {
         from: renter,
       })
       expect(await item.rentalContracts(0)).to.be.equal(rentalContractAddress)

@@ -92,6 +92,6 @@ contract('UserContractCreator', ([deployer, user1, user2]) => {
       .createUserContract(user1, username, deliveryAddress, {
         from: user1,
       })
-      .should.be.rejectedWith(EVM_REVERT) //existing user
+      .should.be.rejectedWith(EVM_REVERT) // existing user
   })
 })

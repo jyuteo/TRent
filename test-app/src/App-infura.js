@@ -7,18 +7,18 @@ const ethereum = window.ethereum
 
 const userContractCreatorJSON = require('./abis/UserContractCreator.json')
 const userContractCreatorABI = userContractCreatorJSON.abi
-const userContractCreatorAddress = '0x77b8e1d6442f9188d3040249eFb3cAd33ad0C89C'
+const userContractCreatorAddress = '0xA1069cDA422ac5692ed2026c8bb91A49759e095c'
 var userContractCreator
 
 const itemContractCreatorJSON = require('./abis/ItemContractCreator.json')
 const itemContractCreatorABI = itemContractCreatorJSON.abi
-const itemContractCreatorAddress = '0x7484529fb5015F6426e41eAa4d87b8E8763D5cc2'
+const itemContractCreatorAddress = '0xD3B79F1E40D61da0b29e090B7964a59e7C33D7D6'
 var itemContractCreator
 
 const rentalContractCreatorJSON = require('./abis/RentalContractCreator.json')
 const rentalContractCreatorABI = rentalContractCreatorJSON.abi
 const rentalContractCreatorAddress =
-  '0x50367E50B3d4ea6F105A52e165C9b62eF62a312A'
+  '0x4E9B58a76981FcaCE0ce7ff420b697555E08b891'
 var rentalContractCreator
 
 const userJSON = require('./abis/User.json')
@@ -236,10 +236,10 @@ class App extends Component {
 
         await this.state.rentalContractCreator.methods
           .createRentalContract(
-            '0xe6925e8306EBF9d9Ef718fB6Ec58E0E301CE6fDd',
+            '0xd222462d409308811cD0a4841644478DF326C4E2',
             {
-              ownerUserContract: '0xcb6bD449f980C7A5C34E3a6C234CFED879E63523',
-              ownerAddress: '0xe592ff4916d308ee7f52c6ef8c6ba2f187c736a0',
+              ownerUserContract: '0x668e75639B0d7a6e3e664cCC4FBCc99754e885aa',
+              ownerAddress: '0x8e8eee6e9e37ccdda5735e26260dbbd720440784',
               name: 'testItemName',
               collectionOrReturnAddress: 'testCollectionAddress',
               description: 'itemDescription',
@@ -249,6 +249,7 @@ class App extends Component {
               isAvailableForRent: true,
               mediaIPFSHashes: ['a', 'b'],
             },
+            '0xe3d0B1c451606c2E5a6bca4fdfa781E07b595230',
             this.state.account,
             10000,
             200,

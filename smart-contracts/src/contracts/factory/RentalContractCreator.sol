@@ -24,6 +24,7 @@ contract RentalContractCreator {
     function createRentalContract(
         address _itemContract,
         Structs.ItemDetails memory _itemDetails,
+        address _renterUserContract,
         address payable _renterAddress,
         uint256 _rentalFees,
         uint256 _renterDeposit,
@@ -42,6 +43,7 @@ contract RentalContractCreator {
         Rental newRentalContract = (new Rental){value: msg.value}(
             _itemContract,
             _itemDetails,
+            _renterUserContract,
             _renterAddress,
             _rentalFees,
             _renterDeposit,

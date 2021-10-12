@@ -98,7 +98,7 @@ contract Item {
         );
     }
 
-    function changeItemStatus(uint8 _newStatus) public onlyOwner {
+    function changeItemStatus(uint8 _newStatus) public {
         if (_newStatus == 0) {
             itemDetails.isAvailableForRent = true;
             itemStatus = ItemStatus.AVAILABLE;

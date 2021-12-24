@@ -20,15 +20,15 @@ contract User {
         uint256 end; // Unix epoch time
     }
 
-    struct Review {
-        address itemContract;
-        address rentalContract;
-        address raterUserContract;
-        uint8 rate;
-        string review;
-        Role role; // role of the rater
-        uint256 time;
-    }
+    // struct Review {
+    //     address itemContract;
+    //     address rentalContract;
+    //     address raterUserContract;
+    //     uint8 rate;
+    //     string review;
+    //     Role role; // role of the rater
+    //     uint256 time;
+    // }
 
     mapping(address => uint8) public rentalIndexInRentalHistory;
 
@@ -38,8 +38,8 @@ contract User {
 
     RentalHistory[] public rentalHistories;
     uint8 public rentalHistoryCount;
-    Review[] public reviews;
-    uint8 public reviewCount;
+    // Review[] public reviews;
+    // uint8 public reviewCount;
     uint8 public lendingCount;
     uint8 public borrowingCount;
     bool public isDishonestUser;
@@ -49,7 +49,8 @@ contract User {
         address indexed userAddress,
         string newDeliveryAddress
     );
-    event newReviewInput(address indexed from, uint8 rate, uint8 reviewCount);
+
+    // event newReviewInput(address indexed from, uint8 rate, uint8 reviewCount);
 
     constructor(
         address _userAddress,
@@ -61,7 +62,7 @@ contract User {
         deliveryAddress = _deliveryAddress;
 
         rentalHistoryCount = 0;
-        reviewCount = 0;
+        // reviewCount = 0;
         lendingCount = 0;
         borrowingCount = 0;
         isDishonestUser = false;
@@ -72,10 +73,10 @@ contract User {
         _;
     }
 
-    modifier restricted() {
-        require(msg.sender != userAddress, "invalid user for this method");
-        _;
-    }
+    // modifier restricted() {
+    //     require(msg.sender != userAddress, "invalid user for this method");
+    //     _;
+    // }
 
     function getUserAddress() public view returns (address) {
         return userAddress;
@@ -151,43 +152,43 @@ contract User {
         rentalHistoryCount++;
     }
 
-    function inputReview(
-        address _item,
-        address _rentalContract,
-        address _raterUserContract,
-        uint8 _rate,
-        string calldata _review,
-        Role _role // role of rater
-    ) public restricted {
-        // Item item = Item(_item);
-        User rater = User(_raterUserContract);
-        // Rental rental = Rental(_rentalContract);
-        uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
-        rater.setRentalHisotryHasRated(rentalIndexOfRater);
+    // function inputReview(
+    //     address _item,
+    //     address _rentalContract,
+    //     address _raterUserContract,
+    //     uint8 _rate,
+    //     string calldata _review,
+    //     Role _role // role of rater
+    // ) public restricted {
+    //     // Item item = Item(_item);
+    //     User rater = User(_raterUserContract);
+    //     // Rental rental = Rental(_rentalContract);
+    //     uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
+    //     rater.setRentalHisotryHasRated(rentalIndexOfRater);
 
-        Review memory newReview = Review({
-            itemContract: _item,
-            rentalContract: _rentalContract,
-            rate: _rate,
-            raterUserContract: _raterUserContract,
-            review: _review,
-            role: _role,
-            time: block.timestamp
-        });
+    //     Review memory newReview = Review({
+    //         itemContract: _item,
+    //         rentalContract: _rentalContract,
+    //         rate: _rate,
+    //         raterUserContract: _raterUserContract,
+    //         review: _review,
+    //         role: _role,
+    //         time: block.timestamp
+    //     });
 
-        reviews.push(newReview);
-        reviewCount++;
+    //     reviews.push(newReview);
+    //     reviewCount++;
 
-        emit newReviewInput(rater.userAddress(), _rate, reviewCount);
-    }
+    //     emit newReviewInput(rater.userAddress(), _rate, reviewCount);
+    // }
 
-    function getRatingsSum() public view returns (uint256) {
-        uint256 sum = 0;
-        for (uint256 i = 0; i < reviewCount; i++) {
-            sum += reviews[i].rate;
-        }
-        return sum;
-    }
+    // function getRatingsSum() public view returns (uint256) {
+    //     uint256 sum = 0;
+    //     for (uint256 i = 0; i < reviewCount; i++) {
+    //         sum += reviews[i].rate;
+    //     }
+    //     return sum;
+    // }
 
     function setAsDishonest() public {
         isDishonestUser = true;

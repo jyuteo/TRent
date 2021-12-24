@@ -13,8 +13,6 @@ contract RentalContractCreator {
     address[] public rentalContracts;
     uint8 public rentalContractCount;
 
-    mapping(address => address[]) rentalContractsForItem;
-
     event rentalContractCreated(
         address rentalContract,
         address itemContract,

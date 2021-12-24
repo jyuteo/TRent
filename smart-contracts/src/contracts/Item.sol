@@ -21,6 +21,14 @@ contract Item {
         uint256 end; // Unix epoch time
     }
 
+    struct Review {
+        address rentalContract;
+        address raterUserContract;
+        uint8 rate;
+        string review;
+        uint256 time;
+    }
+
     address public ownerUserContract;
     address public ownerAddress;
     Structs.ItemDetails public itemDetails;
@@ -34,6 +42,9 @@ contract Item {
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
 
+    uint8 public reviewCount;
+    Review[] public reviews;
+
     event itemOwnerChanged(
         address item,
         address newOwnerUserContract,
@@ -41,6 +52,7 @@ contract Item {
     );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
+    event newReviewInput(address indexed from, uint8 rate, uint8 reviewCount);
 
     constructor(Structs.ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
@@ -54,10 +66,16 @@ contract Item {
         }
 
         rentalContractCount = 0;
+        reviewCount = 0;
     }
 
     modifier onlyOwner() {
         require(msg.sender == ownerAddress, "Method is restricted to Owner");
+        _;
+    }
+
+    modifier onlyRenter() {
+        require(isRenter[msg.sender], "Method is restricted to Renter");
         _;
     }
 
@@ -174,5 +192,33 @@ contract Item {
         renters.push(_renterAddress);
         isRenter[_renterAddress] = true;
         renterCount++;
+    }
+
+    function inputReview(
+        address _rentalContract,
+        address _raterUserContract,
+        uint8 _rate,
+        string calldata _review
+    ) public onlyRenter {
+        Review memory newReview = Review({
+            rentalContract: _rentalContract,
+            rate: _rate,
+            raterUserContract: _raterUserContract,
+            review: _review,
+            time: block.timestamp
+        });
+
+        reviews.push(newReview);
+        reviewCount++;
+
+        emit newReviewInput(_raterUserContract, _rate, reviewCount);
+    }
+
+    function getRatingsSum() public view returns (uint256) {
+        uint256 sum = 0;
+        for (uint256 i = 0; i < reviewCount; i++) {
+            sum += reviews[i].rate;
+        }
+        return sum;
     }
 }

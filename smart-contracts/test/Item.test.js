@@ -1,8 +1,13 @@
+import { expect } from 'chai'
 import { EVM_REVERT } from './helpers/helpers.js'
 
 require('chai').use(require('chai-as-promised')).should()
 const ItemContractCreator = artifacts.require('ItemContractCreator')
+const UserContractCreator = artifacts.require('UserContractCreator')
+const RentalContractCreator = artifacts.require('RentalContractCreator')
 const Item = artifacts.require('Item')
+const User = artifacts.require('User')
+const Rental = artifacts.require('Rental')
 const DateTime = artifacts.require('DateTime')
 const truffleAssert = require('truffle-assertions')
 
@@ -10,12 +15,12 @@ const { accounts } = require('@openzeppelin/test-environment')
 const [ownerContractAddress, rentalContractAddress] = accounts
 
 contract('Item contract', ([deployer, owner, renter]) => {
-  let itemContractCreator, item, itemContractAddress
+  let itemContractCreator, item, itemContractAddress, itemDetails
 
   beforeEach(async () => {
     itemContractCreator = await ItemContractCreator.new({ from: deployer })
 
-    let itemDetails = {
+    itemDetails = {
       ownerUserContract: ownerContractAddress,
       ownerAddress: owner,
       name: 'testItemName',
@@ -93,6 +98,112 @@ contract('Item contract', ([deployer, owner, renter]) => {
       const rentalPeriod = await item.rentalPeriods(0)
       expect(Number(rentalPeriod.start)).to.eq(Number(start))
       expect(Number(rentalPeriod.end)).to.eq(Number(end))
+    })
+  })
+
+  describe('Input rating', async () => {
+    let userContractCreator,
+      renterContractAddress,
+      rentalContractCreator,
+      rentalContractAddress
+
+    beforeEach(async () => {
+      userContractCreator = await UserContractCreator.new({ from: deployer })
+      rentalContractCreator = await RentalContractCreator.new({
+        from: deployer,
+      })
+
+      await userContractCreator.createUserContract(
+        renter,
+        'renterUsername',
+        'renterDeliveryAddress',
+        {
+          from: renter,
+        },
+      )
+
+      renterContractAddress = await userContractCreator.userContractForUser(
+        renter,
+      )
+
+      // renter = await User.at(renterContractAddress)
+
+      // create new Rental contract
+      const response = await rentalContractCreator.createRentalContract(
+        itemContractAddress,
+        itemDetails,
+        renterContractAddress,
+        renter,
+        10000,
+        200,
+        1633442907,
+        1633529307,
+        {
+          from: renter,
+          gas: 6000000,
+          gasPrice: 20,
+          value: 200000000000,
+        },
+      )
+
+      // event emitted after creation of Rental contract
+      truffleAssert.eventEmitted(response, 'rentalContractCreated', (ev) => {
+        rentalContractAddress = ev.rentalContract
+        return (
+          ev.itemContract === itemContractAddress &&
+          ev.renterAddress === renter &&
+          ev.rentalContract === rentalContractAddress
+        )
+      })
+    })
+
+    it('should allow renter to rate item', async () => {
+      let reviewCount = await item.reviewCount()
+      expect(Number(reviewCount)).to.eq(0)
+
+      let rate = 5
+      let review = 'testReview'
+
+      const response = await item.inputReview(
+        rentalContractAddress,
+        renterContractAddress,
+        rate,
+        review,
+        { from: renter },
+      )
+
+      truffleAssert.eventEmitted(response, 'newReviewInput', (ev) => {
+        return (
+          ev.from === renterContractAddress &&
+          Number(ev.rate) === rate &&
+          Number(ev.reviewCount) === 1
+        )
+      })
+
+      // correct rating added
+      reviewCount = await item.reviewCount()
+      expect(Number(reviewCount)).to.eq(1)
+
+      let newReview = await item.reviews(reviewCount - 1)
+      expect(Number(newReview.rate)).to.eq(rate)
+      expect(newReview.raterUserContract).to.be.equal(renterContractAddress)
+      expect(newReview.rentalContract).to.be.equal(rentalContractAddress)
+      expect(newReview.review).to.be.equal(review)
+    })
+
+    it('should not allow non renter to rate item', async () => {
+      let rate = 5
+      let review = 'testReview'
+
+      await item
+        .inputReview(
+          rentalContractAddress,
+          renterContractAddress,
+          rate,
+          review,
+          { from: owner },
+        )
+        .should.be.rejectedWith(EVM_REVERT)
     })
   })
 })

@@ -7,18 +7,18 @@ const ethereum = window.ethereum
 
 const userContractCreatorJSON = require('./abis/UserContractCreator.json')
 const userContractCreatorABI = userContractCreatorJSON.abi
-const userContractCreatorAddress = '0xeC383AF51102bc6374D320dD2E893B7c6946416A'
+const userContractCreatorAddress = '0xF3d915314F2D5b3E8aA16229D5b8580fCA8C205A'
 var userContractCreator
 
 const itemContractCreatorJSON = require('./abis/ItemContractCreator.json')
 const itemContractCreatorABI = itemContractCreatorJSON.abi
-const itemContractCreatorAddress = '0x9A130c847d3Efd5a82b32417AbE4A1e72FB3d311'
+const itemContractCreatorAddress = '0x7b591216B73680A0eCC187FAb2878E9DcCc3d94D'
 var itemContractCreator
 
 const rentalContractCreatorJSON = require('./abis/RentalContractCreator.json')
 const rentalContractCreatorABI = rentalContractCreatorJSON.abi
 const rentalContractCreatorAddress =
-  '0x2956028a2EAECf18caD34b3D0ED5F294e1Fd029A'
+  '0xb5E20b18fE31b61d9c479086F69DbFa31326359f'
 var rentalContractCreator
 
 const userJSON = require('./abis/User.json')
@@ -236,10 +236,10 @@ class App extends Component {
 
         await this.state.rentalContractCreator.methods
           .createRentalContract(
-            '0xDd722ab15E0d83968c439AA29517e8F61Fa46378',
+            '0xe22A3Bcf7776D17aD0dBEcC213a1Ca012d3f4eAe',
             {
-              ownerUserContract: '0x2a80427b810f9cFf9E51e1Df99637790ba38f2dA',
-              ownerAddress: '0x8e8eee6e9e37ccdda5735e26260dbbd720440784',
+              ownerUserContract: '0x7D63bB149C7aBDe2DbD11b796104e835Ba0126C0',
+              ownerAddress: '0x29ad64dc831c78579194ce140a1d8fce74d891da',
               name: 'testItemName',
               collectionOrReturnAddress: 'testCollectionAddress',
               description: 'itemDescription',
@@ -249,7 +249,7 @@ class App extends Component {
               isAvailableForRent: true,
               mediaIPFSHashes: ['a', 'b'],
             },
-            '0x93934C72A7282d1A5B16f00a4b6381F794d5D6EB',
+            '0x6180348f23e850E999CaeD9CF30845c822A0Ff02',
             this.state.account,
             10000,
             200,

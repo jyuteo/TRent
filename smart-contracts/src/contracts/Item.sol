@@ -6,10 +6,9 @@ import "./helpers/Utils.sol";
 import "./helpers/Structs.sol";
 import "./User.sol";
 import "./Rental.sol";
-import "./factory/RentalContractCreator.sol";
 
 contract Item {
-    Utils utils;
+    using Utils for *;
 
     enum ItemStatus {
         AVAILABLE,
@@ -20,6 +19,14 @@ contract Item {
     struct RentalStartEnd {
         uint256 start; // Unix epoch time
         uint256 end; // Unix epoch time
+    }
+
+    struct Review {
+        address rentalContract;
+        address raterUserContract;
+        uint8 rate;
+        string review;
+        uint256 time;
     }
 
     address public ownerUserContract;
@@ -35,8 +42,8 @@ contract Item {
     uint8 public renterCount;
     mapping(address => bool) public isRenter;
 
-    User.Review[] public itemReviews;
-    uint8 public itemReviewCount;
+    uint8 public reviewCount;
+    Review[] public reviews;
 
     event itemOwnerChanged(
         address item,
@@ -45,12 +52,7 @@ contract Item {
     );
     event itemStatusChanged(address item, ItemStatus newStatus);
     event itemDetailsChanged(address item, string property, string newDetails);
-    event rentalContractCreated(
-        address rentalContract,
-        address itemContract,
-        address renterAddress,
-        address ownerAddress
-    );
+    event newReviewInput(address indexed from, uint8 rate, uint8 reviewCount);
 
     constructor(Structs.ItemDetails memory _itemDetails) {
         itemDetails = _itemDetails;
@@ -64,8 +66,7 @@ contract Item {
         }
 
         rentalContractCount = 0;
-        renterCount = 0;
-        itemReviewCount = 0;
+        reviewCount = 0;
     }
 
     modifier onlyOwner() {
@@ -73,9 +74,13 @@ contract Item {
         _;
     }
 
-    modifier onlyRenters() {
+    modifier onlyRenter() {
         require(isRenter[msg.sender], "Method is restricted to Renter");
         _;
+    }
+
+    function getItemDetails() public view returns (Structs.ItemDetails memory) {
+        return itemDetails;
     }
 
     function changeOwner(
@@ -94,7 +99,7 @@ contract Item {
         );
     }
 
-    function changeItemStatus(uint8 _newStatus) public onlyOwner {
+    function changeItemStatus(uint8 _newStatus) public {
         if (_newStatus == 0) {
             itemDetails.isAvailableForRent = true;
             itemStatus = ItemStatus.AVAILABLE;
@@ -136,7 +141,7 @@ contract Item {
 
     function changeItemRentPerDay(uint256 _newRentPerDay) public onlyOwner {
         itemDetails.rentPerDay = _newRentPerDay;
-        string memory newRentPerDay = utils.uint2str(_newRentPerDay);
+        string memory newRentPerDay = Utils.uint2str(_newRentPerDay);
         emit itemDetailsChanged(
             address(this),
             "rentPerDay",
@@ -149,7 +154,7 @@ contract Item {
         onlyOwner
     {
         itemDetails.maxAllowableLateDays = _newMaxAllowableLateDays;
-        string memory newMaxAllowableLateDays = utils.uint2str(
+        string memory newMaxAllowableLateDays = Utils.uint2str(
             _newMaxAllowableLateDays
         );
         emit itemDetailsChanged(
@@ -173,54 +178,47 @@ contract Item {
         );
     }
 
-    function createRentalContract(
-        address _renterUserContract,
-        address payable _renterAddress,
-        uint256 _rentalFees,
-        uint256 _renterDeposit,
+    function handleNewRental(
+        address _newRentalContract,
         uint256 _start,
         uint256 _end,
-        uint8 _numInstallment
-    ) public payable {
-        require(
-            msg.sender == _renterAddress,
-            "Renter address does not match msg.sender"
-        );
-        RentalContractCreator rentalContractCreator;
-        Rental newRentalContract = rentalContractCreator.createRentalContract(
-            address(this),
-            itemDetails,
-            _renterUserContract,
-            _renterAddress,
-            _rentalFees,
-            _renterDeposit,
-            _start,
-            _end,
-            _numInstallment
-        );
-
-        rentalContracts.push(address(newRentalContract));
-        rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
+        address _renterAddress
+    ) public {
+        rentalContracts.push(address(_newRentalContract));
         rentalContractCount++;
+
+        rentalPeriods.push(RentalStartEnd({start: _start, end: _end}));
 
         renters.push(_renterAddress);
         isRenter[_renterAddress] = true;
         renterCount++;
-
-        emit rentalContractCreated(
-            address(newRentalContract),
-            address(this),
-            _renterAddress,
-            ownerAddress
-        );
     }
 
-    // function getItemDetails() public view returns (ItemDetails memory) {
-    //     return itemDetails;
-    // }
+    function inputReview(
+        address _rentalContract,
+        address _raterUserContract,
+        uint8 _rate,
+        string calldata _review
+    ) public onlyRenter {
+        Review memory newReview = Review({
+            rentalContract: _rentalContract,
+            rate: _rate,
+            raterUserContract: _raterUserContract,
+            review: _review,
+            time: block.timestamp
+        });
 
-    // function addItemReview(User.Review memory _review) public onlyRenters {
-    //     itemReviews.push(_review);
-    //     itemReviewCount++;
-    // }
+        reviews.push(newReview);
+        reviewCount++;
+
+        emit newReviewInput(_raterUserContract, _rate, reviewCount);
+    }
+
+    function getRatingsSum() public view returns (uint256) {
+        uint256 sum = 0;
+        for (uint256 i = 0; i < reviewCount; i++) {
+            sum += reviews[i].rate;
+        }
+        return sum;
+    }
 }

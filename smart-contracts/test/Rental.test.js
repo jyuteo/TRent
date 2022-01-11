@@ -1,164 +1,528 @@
-const { accounts, contract } = require('@openzeppelin/test-environment')
-const [
-  ownerUserContract,
-  ownerAddress,
-  renterUserContract,
-  renterAddress,
-  otherAddress,
-] = accounts
-const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
-const balance = require('@openzeppelin/test-helpers/src/balance')
-const { expect } = require('chai')
+import { expect } from 'chai'
+import { EVM_REVERT, waitDays } from './helpers/helpers.js'
 
-const Rental = contract.fromArtifact('Rental')
-const DateTime = contract.fromArtifact('DateTime')
-const Item = contract.fromArtifact('Item')
+require('chai').use(require('chai-as-promised')).should()
+const Web3 = require('web3')
+const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
+const truffleAssert = require('truffle-assertions')
 
-function ethToGwei(_eth) {
-  return _eth * 10 ** 9
-}
+const User = artifacts.require('User')
+const Item = artifacts.require('Item')
+const Rental = artifacts.require('Rental')
+const UserContractCreator = artifacts.require('UserContractCreator')
+const ItemContractCreator = artifacts.require('ItemContractCreator')
+const RentalContractCreator = artifacts.require('RentalContractCreator')
 
-function ethToWei(_eth) {
-  return _eth * 10 ** 18
-}
+contract('Rental contract', ([deployer, ownerAddress, renterAddress]) => {
+  let userContractCreator,
+    owner,
+    renter,
+    ownerContractAddress,
+    renterContractAddress,
+    itemDetails,
+    itemContractCreator,
+    item,
+    itemContractAddress,
+    rentalContractCreator,
+    rental,
+    rentalContractAddress
 
-describe('Rental Contract', async () => {
   beforeEach(async () => {
-    datetime = await DateTime.new()
+    userContractCreator = await UserContractCreator.new({ from: deployer })
+    itemContractCreator = await ItemContractCreator.new({ from: deployer })
+    rentalContractCreator = await RentalContractCreator.new({ from: deployer })
 
-    itemDetails = {
-      ownerUserContract: ownerUserContract,
+    // create User contract for owner
+    await userContractCreator.createUserContract(
+      ownerAddress,
+      'owner',
+      'ownerDeliveryAddress',
+      {
+        from: ownerAddress,
+      },
+    )
+    let ownerContractAddress = await userContractCreator.userContractForUser(
+      ownerAddress,
+    )
+    owner = await User.at(ownerContractAddress)
+
+    // create User contract for renter
+    await userContractCreator.createUserContract(
+      renterAddress,
+      'renter',
+      'renterDeliveryAddress',
+      {
+        from: renterAddress,
+      },
+    )
+    let renterContractAddress = await userContractCreator.userContractForUser(
+      renterAddress,
+    )
+    renter = await User.at(renterContractAddress)
+
+    // create Item contract
+    let itemDetails = {
+      ownerUserContract: ownerContractAddress,
       ownerAddress: ownerAddress,
-      name: 'itemName',
-      collectionOrReturnAddress: 'testReturnAddress',
-      description: 'testDescription',
-      rentPerDay: ethToGwei(0.01), // in gwei
+      name: 'testItemName',
+      collectionOrReturnAddress: 'testCollectionAddress',
+      description: 'testItemDescription',
+      rentPerDay: 10000000, // in gwei
       maxAllowableLateDays: 5,
       multipleForLateFees: 2,
       isAvailableForRent: true,
-      mediaIPFSHashes: ['testMedia1'],
+      mediaIPFSHashes: ['a', 'b'],
     }
-    item = await Item.new(itemDetails)
-
-    let rentalFees = ethToGwei(0.06)
-    let renterDeposit = ethToGwei(0.2)
-    let start = await datetime.toTimestamp(2021, 8, 16)
-    let end = await datetime.toTimestamp(2021, 8, 21)
-    let numInstallment = 2
-    rental = await Rental.new(
-      item.address,
-      renterUserContract,
-      renterAddress,
-      rentalFees,
-      renterDeposit,
-      start,
-      end,
-      numInstallment,
-      { from: renterAddress, value: ethToGwei(renterDeposit) },
+    const itemResponse = await itemContractCreator.createItemContract(
+      itemDetails,
+      {
+        from: ownerAddress,
+      },
     )
+    truffleAssert.eventEmitted(itemResponse, 'itemContractCreated', (ev) => {
+      itemContractAddress = ev.itemContract
+      return (
+        ev.itemOwnerAddress === ownerAddress &&
+        ev.itemContract === itemContractAddress
+      )
+    })
+    item = await Item.at(itemContractAddress)
+
+    // create Rental contract
+    const rentalResponse = await rentalContractCreator.createRentalContract(
+      itemContractAddress,
+      itemDetails,
+      renterContractAddress,
+      renterAddress,
+      11000000,
+      200,
+      1633442907,
+      1634030272,
+      {
+        from: renterAddress,
+        gas: 6000000,
+        gasPrice: 20,
+        value: 200000000000,
+      },
+    )
+    truffleAssert.eventEmitted(
+      rentalResponse,
+      'rentalContractCreated',
+      (ev) => {
+        rentalContractAddress = ev.rentalContract
+        return (
+          ev.itemContract === itemContractAddress &&
+          ev.renterAddress === renterAddress &&
+          ev.rentalContract === rentalContractAddress
+        )
+      },
+    )
+    rental = await Rental.at(rentalContractAddress)
   })
 
-  describe('Constructor', async () => {
-    it('should have correct rental information', async () => {
-      // rental
-      expect(Number(await rental.rentalFees())).to.be.equal(ethToGwei(0.06))
-      expect(Number(await rental.renterDeposit())).to.be.equal(ethToGwei(0.2))
-      expect(await rental.start()).to.be.bignumber.equal(
-        new BN(await datetime.toTimestamp(2021, 8, 16)),
+  describe('Owner', async () => {
+    it('should allow owner to upload proof of transfer and pay owner deposit', async () => {
+      // rental status == CREATED before owner uploads proof
+      expect(Number(await rental.rentalStatus())).to.eq(0)
+
+      // Rental contract only has renter deposit currently
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(
+        200000000000,
       )
-      expect(await rental.end()).to.be.bignumber.equal(
-        new BN(await datetime.toTimestamp(2021, 8, 21)),
+
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      // upload proof and pay deposit
+      const ownerUploadProofResponse = await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
       )
-      expect(Number(await rental.numInstallment())).to.be.equal(2)
-      expect(Number(await rental.rentalStatus())).to.be.equal(0)
-      expect(Number(await rental.rentPerDay())).to.be.equal(ethToGwei(0.01))
-      expect(Number(await rental.maxAllowableLateDays())).to.be.equal(5)
-      expect(Number(await rental.multipleForLateFees())).to.be.equal(2)
 
-      // renter
-      expect(await rental.renterUserContract()).to.be.equal(renterUserContract)
-      expect(await rental.renterAddress()).to.be.equal(renterAddress)
+      truffleAssert.eventEmitted(
+        ownerUploadProofResponse,
+        'itemRented',
+        (ev) => {
+          return (
+            ev.itemContract === itemContractAddress &&
+            ev.renterAddress === renterAddress &&
+            ev.ownerAddress === ownerAddress
+          )
+        },
+      )
 
-      // owner
-      expect(await rental.ownerUserContract()).to.be.equal(ownerUserContract)
-      expect(await rental.ownerAddress()).to.be.equal(ownerAddress)
+      // rental status == RENTED after owner uploads proof and pay deposit
+      expect(Number(await rental.rentalStatus())).to.eq(1)
 
-      // initial values
-      expect(Number(await rental.remainingRentalFees())).to.be.equal(
+      // Rental contract has both renter deposit and owner deposit now
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(
+        400000000000,
+      )
+    })
+
+    it('should not allow others to upload owner proof of transfer and pay owner deposit', async () => {
+      // rental status == CREATED before owner uploads proof
+      expect(Number(await rental.rentalStatus())).to.eq(0)
+
+      // Rental contract only has renter deposit currently
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(
+        200000000000,
+      )
+
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      // upload proof and pay deposit
+      await rental
+        .uploadOwnerProofOfTransferAndPayDeposit(
+          ownerProofOfTransfer,
+          ownerDeposit,
+          { from: renterAddress, value: 200000000000 },
+        )
+        .should.be.rejectedWith(EVM_REVERT) // invalid user address
+    })
+
+    it('should not allow owner to upload owner proof of transfer if msg.value != required owner deposit', async () => {
+      // rental status == CREATED before owner uploads proof
+      expect(Number(await rental.rentalStatus())).to.eq(0)
+
+      // Rental contract only has renter deposit currently
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(
+        200000000000,
+      )
+
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      // upload proof and pay deposit
+      await rental
+        .uploadOwnerProofOfTransferAndPayDeposit(
+          ownerProofOfTransfer,
+          ownerDeposit,
+          { from: ownerAddress },
+        )
+        .should.be.rejectedWith(EVM_REVERT) // msg.value != owner deposit
+    })
+  })
+
+  describe('Renter', async () => {
+    it('should allow renter to upload proof of return', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // pay rental fees before upload proof
+      await rental.payRentalIncludingLateFees(11000000, {
+        from: renterAddress,
+        value: web3.utils.toWei('0.011', 'ether'),
+      })
+
+      expect(Number(await rental.rentalFeesPaid())).to.be.greaterThanOrEqual(
         Number(await rental.rentalFees()),
       )
-      expect(Number(await rental.paidRentalFees())).to.be.equal(0)
-      expect(Number(await rental.claimableRentalFees())).to.be.equal(0)
-      expect(Number(await rental.claimedRentalFees())).to.be.equal(0)
-      expect(Number(await rental.remainingNumInstallment())).to.be.equal(
-        Number(await rental.numInstallment()),
+
+      // rental status == RENTED before renter uploads proof
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      let renterProofOfReturn = ['renterPoof1']
+
+      // upload proof of return
+      const renterUploadProofReturn = await rental.uploadRenterProofOfReturn(
+        renterProofOfReturn,
+        { from: renterAddress },
       )
+
+      truffleAssert.eventEmitted(
+        renterUploadProofReturn,
+        'itemReturned',
+        (ev) => {
+          return (
+            ev.itemContract === itemContractAddress &&
+            ev.renterAddress === renterAddress &&
+            ev.ownerAddress === ownerAddress
+          )
+        },
+      )
+
+      // rental status == RETURNED after return uploads proof of return
+      expect(Number(await rental.rentalStatus())).to.eq(2)
     })
-  })
-  describe('Paying and claiming', async () => {
-    it('should allow renter to pay rental installment and calculate claimable rental fees correctly', async () => {
-      await rental.payRentalInstallment(ethToGwei(0.02), {
+
+    it('should not allow others to upload renter proof of return', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // pay rental fees before upload proof
+      await rental.payRentalIncludingLateFees(11000000, {
         from: renterAddress,
-        value: ethToWei(0.02),
-      })
-      expect(Number(await rental.paidRentalFees())).to.be.equal(ethToGwei(0.02))
-      expect(Number(await rental.remainingRentalFees())).to.be.equal(
-        ethToGwei(0.04),
-      )
-      expect(Number(await rental.claimableRentalFees())).to.be.equal(
-        ethToGwei(0.02),
-      )
-      expect(Number(await rental.claimedRentalFees())).to.be.equal(0)
-      expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
-    })
-    it('should not allow others to pay renter installment', async () => {
-      await expectRevert(
-        rental.payRentalInstallment(ethToGwei(0.02), {
-          from: otherAddress,
-          value: ethToWei(0.02),
-        }),
-        'VM Exception while processing transaction: revert',
-      )
-    })
-    it('should not allow renter to pay renter installment with incorrect value', async () => {
-      await expectRevert(
-        rental.payRentalInstallment(ethToGwei(0.02), {
-          from: renterAddress,
-          value: ethToWei(0.03),
-        }),
-        'VM Exception while processing transaction: revert',
-      )
-    })
-    it('should allow renter to claim rental fees', async () => {
-      // total rental: 0.06 eth, num installments: 2
-      // 1st installment: renter pays 0.02 eth
-      await rental.payRentalInstallment(ethToGwei(0.02), {
-        from: renterAddress,
-        value: ethToWei(0.02),
+        value: web3.utils.toWei('0.011', 'ether'),
       })
 
-      before = Number(await balance.current(ownerAddress))
-      await rental.claimRentalFees({ from: ownerAddress })
-      after = Number(await balance.current(ownerAddress))
-      expect(after).to.be.greaterThan(before)
-      expect(Number(await rental.claimableRentalFees())).to.be.equal(
-        ethToGwei(0),
+      expect(Number(await rental.rentalFeesPaid())).to.be.greaterThanOrEqual(
+        Number(await rental.rentalFees()),
       )
-      expect(Number(await rental.claimedRentalFees())).to.be.equal(
-        ethToGwei(0.02),
-      )
-      expect(Number(await rental.paidRentalFees())).to.be.equal(ethToGwei(0.02))
-      expect(Number(await rental.remainingRentalFees())).to.be.equal(
-        ethToGwei(0.04),
-      )
-      expect(Number(await rental.remainingNumInstallment())).to.be.equal(1)
+
+      // rental status == RENTED before renter uploads proof
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      let renterProofOfReturn = ['renterPoof1']
+
+      // upload proof of return
+      await rental
+        .uploadRenterProofOfReturn(renterProofOfReturn, { from: ownerAddress })
+        .should.be.rejectedWith(EVM_REVERT) // invalid user address
     })
   })
-  // internal functions, change the functions to public before testing
-  // describe('Helpers', async () => {
-  //   it('calculatePayoutIncentive', async () => {
-  //     const payoutIncentive = await rental.calculatePayoutIncentive(200)
-  //     expect(Number(payoutIncentive)).to.be.equal(10)
-  //   })
-  // })
+
+  describe('Pay rental fees including late fees', async () => {
+    it('should allow renter to pay rental fees and late fees', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // rental status == RENTED before renter pays rental fees
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      // pay rental fees
+      await rental.payRentalIncludingLateFees(11000000, {
+        from: renterAddress,
+        value: web3.utils.toWei('0.011', 'ether'),
+      })
+
+      expect(Number(await rental.rentalFeesPaid())).to.eq(11000000)
+
+      expect(Number(await rental.rentalFeesPaid())).to.be.greaterThanOrEqual(
+        Number(await rental.rentalFees()),
+      )
+    })
+
+    it('should not allow renter to pay rental fees if rental status != RENTED', async () => {
+      // rental status == CREATED
+      expect(Number(await rental.rentalStatus())).to.eq(0)
+
+      // pay rental fees
+      await rental
+        .payRentalIncludingLateFees(11000000, {
+          from: renterAddress,
+          value: web3.utils.toWei('0.011', 'ether'),
+        })
+        .should.be.rejectedWith(EVM_REVERT) // invalid rental status
+    })
+
+    it('should not allow renter to pay rental fees if msg.value != amount specified', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // rental status == RENTED before renter pays rental fees
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      // pay rental fees
+      await rental
+        .payRentalIncludingLateFees(11000000, {
+          from: renterAddress,
+          value: web3.utils.toWei('0.012', 'ether'),
+        })
+        .should.be.rejectedWith(EVM_REVERT) // msg.value != specified amount
+    })
+
+    it('should not allow renter to pay rental fees if msg.value < rental fees', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // rental status == RENTED before renter pays rental fees
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      // pay rental fees
+      await rental
+        .payRentalIncludingLateFees(11000000, {
+          from: renterAddress,
+          value: web3.utils.toWei('0.010', 'ether'),
+        })
+        .should.be.rejectedWith(EVM_REVERT) // msg.value < rental fees
+    })
+  })
+
+  describe('Settle deposit', async () => {
+    it('should allow owner to settle owner deposit and renter deposit', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // rental status == RENTED before renter pays rental fees
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      // pay rental fees
+      await rental.payRentalIncludingLateFees(11000000, {
+        from: renterAddress,
+        value: web3.utils.toWei('0.011', 'ether'),
+      })
+
+      // renter uploads proof of return
+      let renterProofOfReturn = ['renterPoof1']
+      await rental.uploadRenterProofOfReturn(renterProofOfReturn, {
+        from: renterAddress,
+      })
+
+      // rental status == RETURNED before owner settles deposit
+      expect(Number(await rental.rentalStatus())).to.eq(2)
+
+      let ownerInitialBalance = await web3.eth.getBalance(ownerAddress)
+      let renterInitialBalance = await web3.eth.getBalance(renterAddress)
+      // console.log('owner balance before settle deposit', ownerInitialBalance)
+
+      // settle deposit
+      const settleDepositResponse = await rental.settleDeposit({
+        from: ownerAddress,
+      })
+
+      truffleAssert.eventEmitted(settleDepositResponse, 'rentalEnded', (ev) => {
+        return (
+          ev.itemContract === itemContractAddress &&
+          ev.rentalContract === rentalContractAddress
+        )
+      })
+
+      // renter gets back renter deposit
+      let ownerFinalBalance = await web3.eth.getBalance(ownerAddress)
+      let renterFinalBalance = await web3.eth.getBalance(renterAddress)
+      expect(Number(ownerFinalBalance)).to.be.greaterThan(
+        Number(ownerInitialBalance),
+      )
+      expect(Number(renterFinalBalance)).to.be.greaterThan(
+        Number(renterInitialBalance),
+      )
+
+      // Rental contract has 0 balance
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(0)
+
+      // rental status == ENDED after owner settled deposit
+      expect(Number(await rental.rentalStatus())).to.eq(3)
+    })
+
+    it('should not allow others to settle owner deposit and renter deposit', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 200 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: 200000000000 },
+      )
+
+      // rental status == RENTED before renter pays rental fees
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      // pay rental fees
+      await rental.payRentalIncludingLateFees(11000000, {
+        from: renterAddress,
+        value: web3.utils.toWei('0.011', 'ether'),
+      })
+
+      // renter uploads proof of return
+      let renterProofOfReturn = ['renterPoof1']
+      await rental.uploadRenterProofOfReturn(renterProofOfReturn, {
+        from: renterAddress,
+      })
+
+      // rental status == RETURNED before owner settles deposit
+      expect(Number(await rental.rentalStatus())).to.eq(2)
+
+      // settle deposit
+      await rental
+        .settleDeposit({
+          from: renterAddress,
+        })
+        .should.be.rejectedWith(EVM_REVERT) // invalid user
+    })
+  })
+
+  describe('Settle rental after 5 late days', async () => {
+    it('should allow owner to settle rental after 5 late days', async () => {
+      // owner upload owner proof
+      let ownerProofOfTransfer = ['ownerPoof1']
+      let ownerDeposit = 10000000 // gwei
+
+      await rental.uploadOwnerProofOfTransferAndPayDeposit(
+        ownerProofOfTransfer,
+        ownerDeposit,
+        { from: ownerAddress, value: web3.utils.toWei('0.01', 'ether') },
+      )
+
+      // rental status == RENTED
+      expect(Number(await rental.rentalStatus())).to.eq(1)
+
+      let ownerInitialBalance = await web3.eth.getBalance(ownerAddress)
+      expect(await renter.isDishonestUser()).to.be.equal(false)
+
+      await rental.settleRentalAfterFiveLateDays({ from: ownerAddress })
+
+      let ownerFinalBalance = await web3.eth.getBalance(ownerAddress)
+      // owner gets back owner deposit and renter deposit
+      expect(Number(ownerFinalBalance)).to.be.greaterThan(
+        Number(ownerInitialBalance),
+      )
+
+      // rental status == END
+      expect(Number(await rental.rentalStatus())).to.eq(3)
+
+      // 0 contract balance
+      expect(Number(await web3.eth.getBalance(rental.address))).to.eq(0)
+
+      // item status == DELETED will be reflected on Item contract
+      expect(Number(await item.itemStatus())).to.eq(2)
+
+      // renter is set as dishonest on renter User contract
+      expect(await renter.isDishonestUser()).to.be.equal(true)
+    })
+
+    it('should not allow owner to settle rental if rental status != RENTED', async () => {
+      // rental status == CREATED
+      expect(Number(await rental.rentalStatus())).to.eq(0)
+
+      await rental
+        .settleRentalAfterFiveLateDays({ from: ownerAddress })
+        .should.be.rejectedWith(EVM_REVERT) // rental status != RENTED
+    })
+  })
 })

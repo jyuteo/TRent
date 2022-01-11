@@ -12,22 +12,12 @@ contract User {
     }
 
     struct RentalHistory {
-        address item; // address of the deployed smart contract for the item
-        address rental; // address of the deployed rental contract
+        address itemContract; // address of the deployed smart contract for the item
+        address rentalContract; // address of the deployed rental contract
         Role role;
         bool hasRated; // rate the opposite role in the contact
         uint256 start; // Unix epoch time
         uint256 end; // Unix epoch time
-    }
-
-    struct Review {
-        address item;
-        address rentalContract;
-        address raterUserContract;
-        uint8 rate;
-        string review;
-        Role role; // role of the rater
-        uint256 time;
     }
 
     mapping(address => uint8) public rentalIndexInRentalHistory;
@@ -38,18 +28,17 @@ contract User {
 
     RentalHistory[] public rentalHistories;
     uint8 public rentalHistoryCount;
-    Review[] public reviews;
-    uint8 public reviewCount;
+    // Review[] public reviews;
+    // uint8 public reviewCount;
     uint8 public lendingCount;
     uint8 public borrowingCount;
     bool public isDishonestUser;
 
-    event usernameChanged(address indexed userAccount, string newUsername);
+    event usernameChanged(address indexed userAddress, string newUsername);
     event deliveryAddressChanged(
-        address indexed userAccount,
+        address indexed userAddress,
         string newDeliveryAddress
     );
-    event newReviewInput(address indexed from, uint8 rate, uint8 ratingCount);
 
     constructor(
         address _userAddress,
@@ -61,20 +50,27 @@ contract User {
         deliveryAddress = _deliveryAddress;
 
         rentalHistoryCount = 0;
-        reviewCount = 0;
+        // reviewCount = 0;
         lendingCount = 0;
         borrowingCount = 0;
         isDishonestUser = false;
     }
 
     modifier onlyUser() {
-        require(msg.sender == userAddress);
+        require(msg.sender == userAddress, "invalid user for this method");
         _;
     }
 
-    modifier restricted() {
-        require(msg.sender != userAddress);
-        _;
+    function getUserAddress() public view returns (address) {
+        return userAddress;
+    }
+
+    function getDeliveryAddress() public view returns (string memory) {
+        return deliveryAddress;
+    }
+
+    function getUsername() public view returns (string memory) {
+        return username;
     }
 
     function changeUsername(string calldata _newUsername) public onlyUser {
@@ -103,8 +99,8 @@ contract User {
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
-            item: _item,
-            rental: _rental,
+            itemContract: _item,
+            rentalContract: _rental,
             role: Role.OWNER,
             hasRated: false,
             start: _start,
@@ -125,8 +121,8 @@ contract User {
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
-            item: _item,
-            rental: _rental,
+            itemContract: _item,
+            rentalContract: _rental,
             role: Role.RENTER,
             hasRated: false,
             start: _start,
@@ -137,48 +133,6 @@ contract User {
         rentalHistories.push(history);
         rentalIndexInRentalHistory[_item] = rentalHistoryCount;
         rentalHistoryCount++;
-    }
-
-    function inputReview(
-        address _item,
-        address _rentalContract,
-        address _raterUserContract,
-        uint8 _rate,
-        string calldata _review,
-        Role _role // role of rater
-    ) public restricted {
-        // Item item = Item(_item);
-        User rater = User(_raterUserContract);
-        // Rental rental = Rental(_rentalContract);
-        uint8 rentalIndexOfRater = rater.rentalIndexInRentalHistory(_item);
-        rater.setRentalHisotryHasRated(rentalIndexOfRater);
-
-        Review memory newReview = Review({
-            item: _item,
-            rentalContract: _rentalContract,
-            rate: _rate,
-            raterUserContract: _raterUserContract,
-            review: _review,
-            role: _role,
-            time: block.timestamp
-        });
-
-        reviews.push(newReview);
-        reviewCount++;
-
-        // if (_role == Role.RENTER) {
-        //     item.addItemReview(newReview);
-        // }
-
-        emit newReviewInput(rater.userAddress(), _rate, reviewCount);
-    }
-
-    function getRatingsSum() public view returns (uint256) {
-        uint256 sum = 0;
-        for (uint256 i = 0; i < reviewCount; i++) {
-            sum += reviews[i].rate;
-        }
-        return sum;
     }
 
     function setAsDishonest() public {

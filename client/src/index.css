@@ -1,0 +1,12 @@
+:root {
+  --dark-blue: #29518c;
+  --blue: #3fbbe2;
+  --hover-blue-dark-shade: #1ea0c8;
+  --hover-blue-light-shade: #64c9e8;
+}
+
+* {
+  image-rendering: crisp-edges;
+  margin: 0;
+  font-family: "Urbanist", sans-serif;
+}

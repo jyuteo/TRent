@@ -1,6 +1,9 @@
 import styled from "styled-components";
-import { Search } from "@material-ui/icons";
+import { Person, Search } from "@material-ui/icons";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import UserNavLink from "./UserNavLink";
+import useMetaMask from "../hooks/metamask";
 
 const Container = styled.div`
   height: 65px;
@@ -146,6 +149,8 @@ const AccountLinkItem = styled.div`
 `;
 
 const Navbar = () => {
+  const user = useSelector((state) => state.user.currentUser);
+  const { isActive } = useMetaMask();
   return (
     <Container>
       <Wrapper>
@@ -171,15 +176,21 @@ const Navbar = () => {
           </NavLinksContainer>
         </Center>
         <Right>
-          <AccountLinksContainer>
-            <AccountLink to="/register">
-              <AccountLinkItem>Register</AccountLinkItem>
-            </AccountLink>
-            |
-            <AccountLink to="/login">
-              <AccountLinkItem>Login</AccountLinkItem>
-            </AccountLink>
-          </AccountLinksContainer>
+          {user && isActive ? (
+            <AccountLinksContainer>
+              <UserNavLink user={user} />
+            </AccountLinksContainer>
+          ) : (
+            <AccountLinksContainer>
+              <AccountLink to="/register">
+                <AccountLinkItem>Register</AccountLinkItem>
+              </AccountLink>
+              |
+              <AccountLink to="/login">
+                <AccountLinkItem>Login</AccountLinkItem>
+              </AccountLink>
+            </AccountLinksContainer>
+          )}
         </Right>
       </Wrapper>
     </Container>

@@ -10,3 +10,9 @@
   margin: 0;
   font-family: "Urbanist", sans-serif;
 }
+
+.main-wrapper {
+  min-width: 1500px;
+  margin: 0;
+  padding: 0;
+}

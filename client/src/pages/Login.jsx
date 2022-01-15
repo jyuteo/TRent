@@ -1,7 +1,11 @@
-import { ShareOutlined } from "@material-ui/icons";
+import { Check, ReportProblem } from "@material-ui/icons";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
+import { login } from "../apiCalls/user";
 import Navbar from "../components/Navbar";
+import useMetaMask from "../hooks/metamask";
 
 const Container = styled.div`
   width: 100vw;
@@ -64,8 +68,20 @@ const WalletFieldContainer = styled.div`
   margin: 5px 15px 5px 0;
 `;
 
-const WalletFieldButton = styled.button`
+const WalletFieldInfo = styled.div`
   background-color: var(--dark-blue);
+  color: white;
+  border-radius: 8px;
+  border: 1px solid white;
+  padding: 4px 10px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const WalletFieldButton = styled.div`
+  background-color: #fc4e68;
   color: white;
   border-radius: 8px;
   border: 1px solid white;
@@ -77,7 +93,7 @@ const WalletFieldButton = styled.button`
   align-items: center;
 
   &:hover {
-    background-color: var(--blue);
+    background-color: #d63031;
   }
 `;
 
@@ -99,6 +115,12 @@ const Input = styled.input`
   }
 `;
 
+const SubmitContainer = styled.div`
+  display: flex;
+  justify-content: ${(props) => (props.withMessage ? "space-between" : "end")};
+  align-items: center;
+`;
+
 const Button = styled.button`
   width: 20%;
   border: none;
@@ -115,7 +137,46 @@ const Button = styled.button`
   }
 `;
 
+const Error = styled.span`
+  color: red;
+  font-size: 14px;
+`;
+
+const Success = styled.span`
+  color: var(--dark-blue);
+  font-size: 14px;
+  margin: 5px 0;
+`;
+
 const Login = () => {
+  const [ethAccountAddress, setEthAccountAddress] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const { isFetchingLogin, loginSuccess, loginError } = useSelector(
+    (state) => state.user
+  );
+
+  const dispatch = useDispatch();
+
+  const { connect, isActive, account, shouldDisable } = useMetaMask();
+
+  useEffect(() => {
+    if (isActive) {
+      setEthAccountAddress(account);
+    }
+  }, [isActive, account]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const loginReqBody = {
+      ethAccountAddress: ethAccountAddress,
+      username: username,
+      password: password,
+    };
+    login(dispatch, loginReqBody);
+  };
+
   return (
     <Container>
       <Navbar />
@@ -132,26 +193,50 @@ const Login = () => {
           <InputContainer>
             <WalletFieldContainer>
               <WalletFieldName>Ethereum Wallet Address</WalletFieldName>
-              <WalletFieldButton>
-                <ShareOutlined style={{ fontSize: 14, marginRight: 5 }} />{" "}
-                Connect to wallet
-              </WalletFieldButton>
+              {isActive ? (
+                <WalletFieldInfo>
+                  <Check style={{ fontSize: 14, marginRight: 5 }} /> Connected
+                  to Metamask wallet
+                </WalletFieldInfo>
+              ) : (
+                <WalletFieldButton onClick={connect} disabled={shouldDisable}>
+                  <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />{" "}
+                  Click to connect wallet
+                </WalletFieldButton>
+              )}
             </WalletFieldContainer>
             <Input
-              placeholder="connect to wallet"
+              placeholder={
+                ethAccountAddress ? ethAccountAddress : "connect to wallet"
+              }
               readOnly={true}
               field="wallet"
             ></Input>
           </InputContainer>
           <InputContainer>
             <FieldName>Username</FieldName>
-            <Input placeholder="username"></Input>
+            <Input
+              placeholder="username"
+              onChange={(e) => setUsername(e.target.value)}
+            ></Input>
           </InputContainer>
           <InputContainer>
             <FieldName>Password</FieldName>
-            <Input placeholder="password" type="password"></Input>
+            <Input
+              placeholder="password"
+              type="password"
+              onChange={(e) => setPassword(e.target.value)}
+            ></Input>
           </InputContainer>
-          <Button>Log In</Button>
+          <SubmitContainer withMessage={true}>
+            {loginError && (
+              <Error>Invalid login credentials. Please try again.</Error>
+            )}
+            {loginSuccess && <Success>Login successful.</Success>}
+            <Button onClick={handleLogin} disabled={isFetchingLogin}>
+              Log In
+            </Button>
+          </SubmitContainer>
         </Form>
       </Wrapper>
     </Container>

@@ -4,10 +4,10 @@ import logger from "../logger.js";
 import Joi from "joi";
 
 const registerFormInputSchema = Joi.object({
+  userContractAddress: Joi.string().required(),
   ethAccountAddress: Joi.string().required(),
   username: Joi.string().required(),
   password: Joi.string().required(),
-  shippingAddress: Joi.string().required(),
 });
 
 const register = async (req, res) => {
@@ -21,11 +21,8 @@ const register = async (req, res) => {
     return res.status(400).json(inputValidation.error.message);
   }
 
-  // create user contract for new user
-  // get userContractAddress
-  let userContractAddress = "testAddress2";
-
-  const { ethAccountAddress, username, password } = req.body;
+  const { userContractAddress, ethAccountAddress, username, password } =
+    req.body;
   const newUser = new User({
     userContractAddress: userContractAddress,
     ethAccountAddress: ethAccountAddress,

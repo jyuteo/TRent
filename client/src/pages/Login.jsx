@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
+import Web3 from "web3";
 import { login } from "../apiCalls/user";
 import Navbar from "../components/Navbar";
 import useMetaMask from "../hooks/metamask";
 
 const Container = styled.div`
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -169,6 +170,7 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    console.log("login", ethAccountAddress);
     const loginReqBody = {
       ethAccountAddress: ethAccountAddress,
       username: username,
@@ -199,7 +201,7 @@ const Login = () => {
                   to Metamask wallet
                 </WalletFieldInfo>
               ) : (
-                <WalletFieldButton onClick={connect} disabled={shouldDisable}>
+                <WalletFieldButton onClick={async (e) => await connect(Web3)}>
                   <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />{" "}
                   Click to connect wallet
                 </WalletFieldButton>
@@ -229,9 +231,7 @@ const Login = () => {
             ></Input>
           </InputContainer>
           <SubmitContainer withMessage={true}>
-            {loginError && (
-              <Error>Invalid login credentials. Please try again.</Error>
-            )}
+            {loginError && <Error>Unable to login. Please try again.</Error>}
             {loginSuccess && <Success>Login successful.</Success>}
             <Button onClick={handleLogin} disabled={isFetchingLogin}>
               Log In

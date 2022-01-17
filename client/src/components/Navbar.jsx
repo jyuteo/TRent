@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { Person, Search } from "@material-ui/icons";
+import { Search } from "@material-ui/icons";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import UserNavLink from "./UserNavLink";
@@ -156,7 +156,7 @@ const Navbar = () => {
       <Wrapper>
         <Left>
           <LogoLink to="/">
-            <Logo src="logo-white.png" />
+            <Logo src="https://ipfs.moralis.io:2053/ipfs/QmcBpH72x2HRH8ax71GL2jurMD4o9sCko2VZsZAjtSMPtj" />
           </LogoLink>
         </Left>
         <Center>
@@ -167,7 +167,7 @@ const Navbar = () => {
             </IconContainer>
           </SearchContainer>
           <NavLinksContainer>
-            <NavLink to="/listItem">
+            <NavLink to="/list">
               <NavLinkItem>List Item For Rent</NavLinkItem>
             </NavLink>
             <NavLink to="/rentals">

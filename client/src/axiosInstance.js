@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const PORT = process.env.API_PORT || 5000;
+const PORT = process.env.REACT_APP_API_PORT || 5000;
 const axiosInstance = axios.create({
   baseURL: `http://localhost:${PORT}`,
   withCredentials: true,

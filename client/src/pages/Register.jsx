@@ -14,6 +14,7 @@ import {
 } from "../formValidations/register";
 import useMetaMask from "../hooks/metamask";
 import { registerReset } from "../stores/reducers/userReducer";
+import { createUserContract } from "../services/contractServices/userContractCreator";
 
 const Container = styled.div`
   width: 100vw;
@@ -170,6 +171,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [validationError, setValidationError] = useState(false);
+  const [createUserContractError, setCreateUserContractError] = useState(false);
   const [errors, setErrors] = useState({
     ethAccountAddressError: "",
     usernameError: "",
@@ -279,18 +281,29 @@ const Register = () => {
     );
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     const isValid = validateForm();
     if (isValid) {
       setValidationError(false);
-      const registerReqBody = {
-        ethAccountAddress: ethAccountAddress,
-        username: username,
-        password: password,
-        shippingAddress: shippingAddress,
-      };
-      register(dispatch, registerReqBody);
+      const newUserContractAddress = await createUserContract(
+        ethAccountAddress,
+        username,
+        shippingAddress
+      );
+      if (!newUserContractAddress) {
+        setCreateUserContractError(true);
+        return;
+      } else {
+        console.log("[debug] newUserContractAddress: ", newUserContractAddress);
+        const registerReqBody = {
+          userContractAddress: newUserContractAddress,
+          ethAccountAddress: ethAccountAddress,
+          username: username,
+          password: password,
+        };
+        register(dispatch, registerReqBody);
+      }
     } else {
       setValidationError(true);
     }
@@ -381,12 +394,17 @@ const Register = () => {
             )}
           </InputContainer>
           <SubmitContainer
-            withMessage={registerError || registerSuccess || validationError}
+            withMessage={
+              registerError ||
+              registerSuccess ||
+              validationError ||
+              createUserContractError
+            }
           >
             {validationError && (
               <Error>Invalid details. Please try again.</Error>
             )}
-            {!validationError && registerError && (
+            {!validationError && (createUserContractError || registerError) && (
               <Error>Unable to create account. Please try again.</Error>
             )}
             {registerSuccess && (

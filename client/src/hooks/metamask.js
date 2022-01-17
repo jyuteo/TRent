@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { injected } from "../components/wallet/connectors";
+import { injected } from "../services/contractServices/wallet/connectors";
 import { useWeb3React } from "@web3-react/core";
 
 export const MetaMaskContext = React.createContext(null);
@@ -16,6 +16,7 @@ export const MetaMaskProvider = ({ children }) => {
   useEffect(() => {
     connect().then((val) => {
       setIsLoading(false);
+      setIsActive(true);
     });
   }, []);
 
@@ -26,7 +27,9 @@ export const MetaMaskProvider = ({ children }) => {
   }, [active]);
 
   useEffect(() => {
-    handleIsActive();
+    if (active) {
+      handleIsActive();
+    }
   }, [handleIsActive]);
 
   // Connect to MetaMask wallet

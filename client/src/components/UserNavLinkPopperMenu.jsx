@@ -1,6 +1,6 @@
 import { Person } from "@material-ui/icons";
 import { useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { logout } from "../apiCalls/user";
 
@@ -61,10 +61,12 @@ const Button = styled.div`
 
 const UserNavLinkPopperMenu = ({ user }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleLogout = (e) => {
     e.preventDefault();
     logout(dispatch);
+    return navigate("/");
   };
 
   return (

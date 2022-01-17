@@ -164,18 +164,14 @@ contract Item {
         );
     }
 
-    function changeItemMediaIPFSHashes(string[] memory _newMediaIPFSHashes)
+    function changeItemImageIPFSUrl(string[] memory _newimageIPFSUrl)
         public
         onlyOwner
     {
-        itemDetails.mediaIPFSHashes = _newMediaIPFSHashes;
-        string memory newMediaIPFSHashes = "newMediaHashes";
+        itemDetails.imageIPFSUrl = _newimageIPFSUrl;
+        string memory newImageIPFSUrl = "newImageIPFSUrl";
 
-        emit itemDetailsChanged(
-            address(this),
-            "mediaIPFSHashes",
-            newMediaIPFSHashes
-        );
+        emit itemDetailsChanged(address(this), "imageIPFSUrl", newImageIPFSUrl);
     }
 
     function handleNewRental(

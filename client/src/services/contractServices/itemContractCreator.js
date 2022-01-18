@@ -39,7 +39,7 @@ export const createItemContract = async (
       gasPrice: 20000000000,
     });
 
-    newItemContractAddress = itemContractCreator
+    itemContractCreator
       .getPastEvents("itemContractCreated", {
         fromBlock: "latest",
       })
@@ -51,5 +51,16 @@ export const createItemContract = async (
   } catch (err) {
     console.log("Error in creating Item contract: ", err);
     return null;
+  }
+};
+
+export const getAllItemContracts = async () => {
+  try {
+    const itemContracts = await itemContractCreator.methods
+      .getItemContracts()
+      .call();
+    return itemContracts;
+  } catch (err) {
+    throw new Error(err);
   }
 };

@@ -29,7 +29,7 @@ const Wrapper = styled.div`
 const Form = styled.form``;
 
 const Title = styled.h1`
-  font-style: 24px;
+  font-size: 30px;
   font-weight: 300;
 `;
 
@@ -230,7 +230,7 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
             ></Input>
           </InputContainer>
-          <SubmitContainer withMessage={true}>
+          <SubmitContainer withMessage={loginError || loginSuccess}>
             {loginError && <Error>Unable to login. Please try again.</Error>}
             {loginSuccess && <Success>Login successful.</Success>}
             <Button onClick={handleLogin} disabled={isFetchingLogin}>

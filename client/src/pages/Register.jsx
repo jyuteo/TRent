@@ -15,20 +15,38 @@ import {
 import useMetaMask from "../hooks/metamask";
 import { registerReset } from "../stores/reducers/userReducer";
 import { createUserContract } from "../services/contractServices/userContractCreator";
+import NewUserAccountCreated from "../components/NewUserAccountCreated";
+
+// const Container = styled.div`
+//   width: 100vw;
+//   height: 100vh;
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+// `;
 
 const Container = styled.div`
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 90vh;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
 `;
 
+// const Wrapper = styled.div`
+//   width: 30%;
+//   height: 80%;
+//   padding: 20px;
+//   background-color: white;
+//   display: flex;
+//   flex-direction: column;
+//   justify-content: center;
+// `;
+
 const Wrapper = styled.div`
   width: 30%;
-  height: 80%;
   padding: 20px;
-  background-color: white;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -37,7 +55,7 @@ const Wrapper = styled.div`
 const Form = styled.form``;
 
 const Title = styled.h1`
-  font-style: 24px;
+  font-size: 30px;
   font-weight: 300;
 `;
 
@@ -158,10 +176,14 @@ const FieldError = styled.span`
   margin: 5px 0;
 `;
 
-const Success = styled.span`
-  color: var(--dark-blue);
-  font-size: 14px;
-  margin: 5px 0;
+const SuccessContainer = styled.div`
+  position: fixed;
+  top: 65px;
+  width: 100%;
+  height: 950px;
+  display: ${(props) => (props.show ? "flex" : "none")};
+  align-items: center;
+  justify-content: center;
 `;
 
 const Register = () => {
@@ -179,6 +201,7 @@ const Register = () => {
     confirmPasswordError: "",
     shippingAddressError: "",
   });
+  const [userContractAddress, setUserContractAddress] = useState();
 
   const { isFetchingRegister, registerSuccess, registerError } = useSelector(
     (state) => state.user
@@ -200,14 +223,14 @@ const Register = () => {
     }
   }, [isActive, account]);
 
-  useEffect(() => {
-    if (registerSuccess) {
-      setTimeout(() => {
-        dispatch(registerReset());
-        navigate("/login");
-      }, 1500);
-    }
-  }, [registerSuccess]);
+  // useEffect(() => {
+  //   if (registerSuccess) {
+  //     setTimeout(() => {
+  //       dispatch(registerReset());
+  //       navigate("/login");
+  //     }, 1500);
+  //   }
+  // }, [registerSuccess]);
 
   const handleEthAccountAddress = (ethAccountAddress) => {
     const { isValid, message } = validateEthAccountAddress(ethAccountAddress);
@@ -295,6 +318,7 @@ const Register = () => {
         setCreateUserContractError(true);
         return;
       } else {
+        setUserContractAddress(newUserContractAddress);
         console.log("[debug] newUserContractAddress: ", newUserContractAddress);
         const registerReqBody = {
           userContractAddress: newUserContractAddress,
@@ -302,6 +326,7 @@ const Register = () => {
           username: username,
           password: password,
         };
+        dispatch(registerReset());
         register(dispatch, registerReqBody);
       }
     } else {
@@ -311,114 +336,116 @@ const Register = () => {
   };
 
   return (
-    <Container>
+    <div style={{ width: "100%" }}>
       <Navbar />
-      <Wrapper>
-        <Title>CREATE AN ACCOUNT</Title>
-        <TextContainer>
-          <Text>Please connect to your Ethereum wallet</Text>
-          <Text>
-            Have an account?
-            <TextLink to="/login">Log In Now</TextLink>
-          </Text>
-        </TextContainer>
-        <Form>
-          <InputContainer>
-            <WalletFieldContainer>
-              <WalletFieldName>Ethereum Wallet Address</WalletFieldName>
-              {isActive ? (
-                <WalletFieldInfo>
-                  <Check style={{ fontSize: 14, marginRight: 5 }} /> Connected
-                  to Metamask wallet
-                </WalletFieldInfo>
-              ) : (
-                <WalletFieldButton onClick={connect} disabled={shouldDisable}>
-                  <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />{" "}
-                  Click to connect wallet
-                </WalletFieldButton>
+      <Container>
+        <Wrapper>
+          <Title>CREATE AN ACCOUNT</Title>
+          <TextContainer>
+            <Text>Please connect to your Ethereum wallet</Text>
+            <Text>
+              Have an account?
+              <TextLink to="/login">Log In Now</TextLink>
+            </Text>
+          </TextContainer>
+          <Form>
+            <InputContainer>
+              <WalletFieldContainer>
+                <WalletFieldName>Ethereum Wallet Address</WalletFieldName>
+                {isActive ? (
+                  <WalletFieldInfo>
+                    <Check style={{ fontSize: 14, marginRight: 5 }} /> Connected
+                    to Metamask wallet
+                  </WalletFieldInfo>
+                ) : (
+                  <WalletFieldButton onClick={connect} disabled={shouldDisable}>
+                    <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />{" "}
+                    Click to connect wallet
+                  </WalletFieldButton>
+                )}
+              </WalletFieldContainer>
+              <Input
+                placeholder={
+                  ethAccountAddress ? ethAccountAddress : "connect to wallet"
+                }
+                readOnly={true}
+                field="wallet"
+                value={ethAccountAddress ? ethAccountAddress : ""}
+                onChange={(e) => handleEthAccountAddress(e.target.value)}
+              ></Input>
+              {errors.ethAccountAddressError && (
+                <FieldError>{errors.ethAccountAddressError}</FieldError>
               )}
-            </WalletFieldContainer>
-            <Input
-              placeholder={
-                ethAccountAddress ? ethAccountAddress : "connect to wallet"
+            </InputContainer>
+            <InputContainer>
+              <FieldName>Username</FieldName>
+              <Input
+                placeholder="username"
+                onChange={(e) => handleUsername(e.target.value)}
+              ></Input>
+              {errors.usernameError && (
+                <FieldError>{errors.usernameError}</FieldError>
+              )}
+            </InputContainer>
+            <InputContainer>
+              <FieldName>Password</FieldName>
+              <Input
+                placeholder="password"
+                type="password"
+                onChange={(e) => handlePassword(e.target.value)}
+              ></Input>
+              {errors.passwordError && (
+                <FieldError>{errors.passwordError}</FieldError>
+              )}
+            </InputContainer>
+            <InputContainer>
+              <FieldName>Confirm Password</FieldName>
+              <Input
+                placeholder="confirm password"
+                type="password"
+                onChange={(e) =>
+                  handleConfirmPassword(password, e.target.value)
+                }
+              ></Input>
+              {errors.confirmPasswordError && (
+                <FieldError>{errors.confirmPasswordError}</FieldError>
+              )}
+            </InputContainer>
+            <InputContainer>
+              <FieldName>Shipping Address</FieldName>
+              <Input
+                placeholder="shipping address"
+                onChange={(e) => handleShippingAddress(e.target.value)}
+              ></Input>
+              {errors.shippingAddressError && (
+                <FieldError>{errors.shippingAddressError}</FieldError>
+              )}
+            </InputContainer>
+            <SubmitContainer
+              withMessage={
+                registerError || validationError || createUserContractError
               }
-              readOnly={true}
-              field="wallet"
-              value={ethAccountAddress ? ethAccountAddress : ""}
-              onChange={(e) => handleEthAccountAddress(e.target.value)}
-            ></Input>
-            {errors.ethAccountAddressError && (
-              <FieldError>{errors.ethAccountAddressError}</FieldError>
-            )}
-          </InputContainer>
-          <InputContainer>
-            <FieldName>Username</FieldName>
-            <Input
-              placeholder="username"
-              onChange={(e) => handleUsername(e.target.value)}
-            ></Input>
-            {errors.usernameError && (
-              <FieldError>{errors.usernameError}</FieldError>
-            )}
-          </InputContainer>
-          <InputContainer>
-            <FieldName>Password</FieldName>
-            <Input
-              placeholder="password"
-              type="password"
-              onChange={(e) => handlePassword(e.target.value)}
-            ></Input>
-            {errors.passwordError && (
-              <FieldError>{errors.passwordError}</FieldError>
-            )}
-          </InputContainer>
-          <InputContainer>
-            <FieldName>Confirm Password</FieldName>
-            <Input
-              placeholder="confirm password"
-              type="password"
-              onChange={(e) => handleConfirmPassword(password, e.target.value)}
-            ></Input>
-            {errors.confirmPasswordError && (
-              <FieldError>{errors.confirmPasswordError}</FieldError>
-            )}
-          </InputContainer>
-          <InputContainer>
-            <FieldName>Shipping Address</FieldName>
-            <Input
-              placeholder="shipping address"
-              onChange={(e) => handleShippingAddress(e.target.value)}
-            ></Input>
-            {errors.shippingAddressError && (
-              <FieldError>{errors.shippingAddressError}</FieldError>
-            )}
-          </InputContainer>
-          <SubmitContainer
-            withMessage={
-              registerError ||
-              registerSuccess ||
-              validationError ||
-              createUserContractError
-            }
-          >
-            {validationError && (
-              <Error>Invalid details. Please try again.</Error>
-            )}
-            {!validationError && (createUserContractError || registerError) && (
-              <Error>Unable to create account. Please try again.</Error>
-            )}
-            {registerSuccess && (
-              <Success>
-                New account created successfully. Proceed to login.
-              </Success>
-            )}
-            <Button onClick={handleRegister} disabled={isFetchingRegister}>
-              Sign Up
-            </Button>
-          </SubmitContainer>
-        </Form>
-      </Wrapper>
-    </Container>
+            >
+              {validationError && (
+                <Error>Invalid details. Please try again.</Error>
+              )}
+              {!validationError &&
+                (createUserContractError || registerError) && (
+                  <Error>Unable to create account. Please try again.</Error>
+                )}
+              <Button onClick={handleRegister} disabled={isFetchingRegister}>
+                Sign Up
+              </Button>
+            </SubmitContainer>
+          </Form>
+        </Wrapper>
+      </Container>
+      {registerSuccess && (
+        <SuccessContainer show={userContractAddress}>
+          <NewUserAccountCreated userContractAddress={userContractAddress} />
+        </SuccessContainer>
+      )}
+    </div>
   );
 };
 

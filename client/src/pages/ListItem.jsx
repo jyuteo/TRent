@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components";
 import Navbar from "../components/Navbar";
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
 `;
 
 const Title = styled.h1`
-  font-style: 24px;
+  font-size: 30px;
   font-weight: 300;
 `;
 

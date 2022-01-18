@@ -11,14 +11,11 @@ import Register from "./pages/Register";
 
 const App = () => {
   const user = useSelector((state) => state.user.currentUser);
-  // const user = true;
-  const { isActive } = useMetaMask();
+  // const { isActive } = useMetaMask();
   // const activeUserAndValidEthAccount = user && isActive;
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" exact element={<Home />} />
-        {!isActive && <Route path="*" element={<Login />} />}
         <Route
           path="/login"
           exact
@@ -30,12 +27,18 @@ const App = () => {
           element={user ? <Navigate to="/" /> : <Register />}
         />
         <Route
-          path="/list"
+          path="/"
           exact
-          element={user ? <ListItem /> : <Navigate to="/login" />}
+          element={user ? <Home /> : <Navigate to="/login" />}
         />
-        <Route path="/item/:itemContractAddress" exact element={<Item />} />
-        <Route path="*" element={<NotFound />} />
+        {user && <Route path="/list" exact element={<ListItem />} />}
+        {user && (
+          <Route path="/item/:itemContractAddress" exact element={<Item />} />
+        )}
+        <Route
+          path="*"
+          element={user ? <NotFound /> : <Navigate to="/login" />}
+        />
       </Routes>
     </BrowserRouter>
   );

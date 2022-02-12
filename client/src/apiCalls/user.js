@@ -33,7 +33,5 @@ export const logout = async (dispatch) => {
   try {
     await axios.delete("/api/auth/logout");
     dispatch(logoutSuccess());
-  } catch (err) {
-    console.log(err);
-  }
+  } catch (err) {}
 };

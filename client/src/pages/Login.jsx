@@ -10,16 +10,17 @@ import useMetaMask from "../hooks/metamask";
 
 const Container = styled.div`
   width: 100%;
-  height: 100vh;
+  /* height: 100vh; */
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
 
 const Wrapper = styled.div`
+  min-width: 500px;
   width: 30%;
-  height: 80%;
-  padding: 20px;
+  /* height: 80%; */
+  padding: 10%;
   background-color: white;
   display: flex;
   flex-direction: column;
@@ -158,12 +159,12 @@ const Login = () => {
     (state) => state.user
   );
 
+  const { connect, isActive, account } = useMetaMask();
+
   const dispatch = useDispatch();
 
-  const { connect, isActive, account, shouldDisable } = useMetaMask();
-
   useEffect(() => {
-    if (isActive) {
+    if (isActive && account) {
       setEthAccountAddress(account);
     }
   }, [isActive, account]);
@@ -195,7 +196,7 @@ const Login = () => {
           <InputContainer>
             <WalletFieldContainer>
               <WalletFieldName>Ethereum Wallet Address</WalletFieldName>
-              {isActive ? (
+              {isActive && account ? (
                 <WalletFieldInfo>
                   <Check style={{ fontSize: 14, marginRight: 5 }} /> Connected
                   to Metamask wallet

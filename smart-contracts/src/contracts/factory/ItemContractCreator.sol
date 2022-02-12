@@ -7,7 +7,7 @@ import "../Item.sol";
 
 contract ItemContractCreator {
     address[] private itemContracts;
-    uint256 private itemCount;
+    uint128 private itemCount;
 
     modifier notItemOwner(address itemOwnerAddress) {
         require(

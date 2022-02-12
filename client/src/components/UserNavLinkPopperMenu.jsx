@@ -66,7 +66,7 @@ const UserNavLinkPopperMenu = ({ user }) => {
   const handleLogout = (e) => {
     e.preventDefault();
     logout(dispatch);
-    return navigate("/");
+    navigate("/login");
   };
 
   return (

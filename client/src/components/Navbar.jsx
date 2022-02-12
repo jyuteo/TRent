@@ -1,9 +1,10 @@
 import styled from "styled-components";
 import { Search } from "@material-ui/icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import UserNavLink from "./UserNavLink";
 import useMetaMask from "../hooks/metamask";
+import { useState } from "react";
 
 const Container = styled.div`
   height: 65px;
@@ -150,7 +151,19 @@ const AccountLinkItem = styled.div`
 
 const Navbar = () => {
   const user = useSelector((state) => state.user.currentUser);
-  const { isActive } = useMetaMask();
+  const isLogin = useSelector((state) => state.user.loginSuccess);
+  const { account } = useMetaMask();
+  const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (searchValue) => {
+    if (!searchValue) {
+      navigate("/");
+    } else {
+      navigate(`/?search=${searchValue}`);
+    }
+  };
+
   return (
     <Container>
       <Wrapper>
@@ -161,22 +174,32 @@ const Navbar = () => {
         </Left>
         <Center>
           <SearchContainer>
-            <Input placeholder="Search for an item" />
+            <Input
+              placeholder={"Search for an item"}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+              }}
+            />
             <IconContainer>
-              <Search style={{ color: "white", fontSize: 24 }} />
+              <Search
+                style={{ color: "white", fontSize: 24 }}
+                onClick={(e) => {
+                  handleSearch(searchValue);
+                }}
+              />
             </IconContainer>
           </SearchContainer>
           <NavLinksContainer>
             <NavLink to="/list">
               <NavLinkItem>List Item For Rent</NavLinkItem>
             </NavLink>
-            <NavLink to="/rentals">
+            <NavLink to="/my-rentals">
               <NavLinkItem>My Rentals</NavLinkItem>
             </NavLink>
           </NavLinksContainer>
         </Center>
         <Right>
-          {user && isActive ? (
+          {isLogin ? (
             <AccountLinksContainer>
               <UserNavLink user={user} />
             </AccountLinksContainer>

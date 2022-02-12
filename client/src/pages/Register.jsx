@@ -1,7 +1,7 @@
 import { Check, ReportProblem } from "@material-ui/icons";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { register } from "../apiCalls/user";
 import Navbar from "../components/Navbar";
@@ -17,36 +17,18 @@ import { registerReset } from "../stores/reducers/userReducer";
 import { createUserContract } from "../services/contractServices/userContractCreator";
 import NewUserAccountCreated from "../components/NewUserAccountCreated";
 
-// const Container = styled.div`
-//   width: 100vw;
-//   height: 100vh;
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-// `;
-
 const Container = styled.div`
   width: 100%;
-  height: 90vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 `;
 
-// const Wrapper = styled.div`
-//   width: 30%;
-//   height: 80%;
-//   padding: 20px;
-//   background-color: white;
-//   display: flex;
-//   flex-direction: column;
-//   justify-content: center;
-// `;
-
 const Wrapper = styled.div`
+  min-width: 500px;
   width: 30%;
-  padding: 20px;
+  padding: 10%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -178,9 +160,9 @@ const FieldError = styled.span`
 
 const SuccessContainer = styled.div`
   position: fixed;
-  top: 65px;
+  top: 0;
   width: 100%;
-  height: 950px;
+  height: 100%;
   display: ${(props) => (props.show ? "flex" : "none")};
   align-items: center;
   justify-content: center;
@@ -202,15 +184,10 @@ const Register = () => {
     shippingAddressError: "",
   });
   const [userContractAddress, setUserContractAddress] = useState();
-
   const { isFetchingRegister, registerSuccess, registerError } = useSelector(
     (state) => state.user
   );
-
   const dispatch = useDispatch();
-
-  const navigate = useNavigate();
-
   const { connect, isActive, account, shouldDisable } = useMetaMask();
 
   useEffect(() => {
@@ -222,15 +199,6 @@ const Register = () => {
       setEthAccountAddress(account);
     }
   }, [isActive, account]);
-
-  // useEffect(() => {
-  //   if (registerSuccess) {
-  //     setTimeout(() => {
-  //       dispatch(registerReset());
-  //       navigate("/login");
-  //     }, 1500);
-  //   }
-  // }, [registerSuccess]);
 
   const handleEthAccountAddress = (ethAccountAddress) => {
     const { isValid, message } = validateEthAccountAddress(ethAccountAddress);
@@ -352,7 +320,7 @@ const Register = () => {
             <InputContainer>
               <WalletFieldContainer>
                 <WalletFieldName>Ethereum Wallet Address</WalletFieldName>
-                {isActive ? (
+                {isActive && account ? (
                   <WalletFieldInfo>
                     <Check style={{ fontSize: 14, marginRight: 5 }} /> Connected
                     to Metamask wallet

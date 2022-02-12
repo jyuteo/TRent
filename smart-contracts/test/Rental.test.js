@@ -130,7 +130,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
         200000000000
       );
 
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       // upload proof and pay deposit
@@ -171,7 +171,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
         200000000000
       );
 
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       // upload proof and pay deposit
@@ -193,7 +193,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
         200000000000
       );
 
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       // upload proof and pay deposit
@@ -210,7 +210,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
   describe("Renter", async () => {
     it("should allow renter to upload proof of return", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -232,7 +232,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
       // rental status == RENTED before renter uploads proof
       expect(Number(await rental.rentalStatus())).to.eq(1);
 
-      let renterProofOfReturn = ["renterPoof1"];
+      let renterProofOfReturn = "renterPoof1";
 
       // upload proof of return
       const renterUploadProofReturn = await rental.uploadRenterProofOfReturn(
@@ -258,7 +258,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
 
     it("should not allow others to upload renter proof of return", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -280,7 +280,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
       // rental status == RENTED before renter uploads proof
       expect(Number(await rental.rentalStatus())).to.eq(1);
 
-      let renterProofOfReturn = ["renterPoof1"];
+      let renterProofOfReturn = "renterPoof1";
 
       // upload proof of return
       await rental
@@ -292,7 +292,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
   describe("Pay rental fees including late fees", async () => {
     it("should allow renter to pay rental fees and late fees", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -332,7 +332,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
 
     it("should not allow renter to pay rental fees if msg.value != amount specified", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -355,7 +355,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
 
     it("should not allow renter to pay rental fees if msg.value < rental fees", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -380,7 +380,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
   describe("Settle deposit", async () => {
     it("should allow owner to settle owner deposit and renter deposit", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -399,7 +399,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
       });
 
       // renter uploads proof of return
-      let renterProofOfReturn = ["renterPoof1"];
+      let renterProofOfReturn = "renterPoof1";
       await rental.uploadRenterProofOfReturn(renterProofOfReturn, {
         from: renterAddress,
       });
@@ -442,7 +442,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
 
     it("should not allow others to settle owner deposit and renter deposit", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 200; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(
@@ -461,7 +461,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
       });
 
       // renter uploads proof of return
-      let renterProofOfReturn = ["renterPoof1"];
+      let renterProofOfReturn = "renterPoof1";
       await rental.uploadRenterProofOfReturn(renterProofOfReturn, {
         from: renterAddress,
       });
@@ -481,7 +481,7 @@ contract("Rental contract", ([deployer, ownerAddress, renterAddress]) => {
   describe("Settle rental after 5 late days", async () => {
     it("should allow owner to settle rental after 5 late days", async () => {
       // owner upload owner proof
-      let ownerProofOfTransfer = ["ownerPoof1"];
+      let ownerProofOfTransfer = "ownerPoof1";
       let ownerDeposit = 10000000; // gwei
 
       await rental.uploadOwnerProofOfTransferAndPayDeposit(

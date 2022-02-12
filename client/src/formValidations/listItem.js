@@ -44,12 +44,21 @@ export const validateDeposit = (deposit) => {
 
 export const validateRentalRate = (rentalRate) => {
   let errorMessage;
-  const regex = /^\d+\.?\d*$/;
+  const regex = /^\d+\.?\d{0,4}$/;
+
+  let decimalPlaces;
+  if (rentalRate.indexOf(".") > -1) {
+    decimalPlaces = rentalRate.split(".")[1];
+  }
   if (!rentalRate) {
     errorMessage = "Please enter daily rental rate";
     return { isValid: false, message: errorMessage };
   } else if (!regex.test(rentalRate)) {
-    errorMessage = "Invalid daily rental rate value";
+    if (decimalPlaces && decimalPlaces.length > 4) {
+      errorMessage = "Please only enter up to 4 decimal places";
+    } else {
+      errorMessage = "Invalid daily rental rate value";
+    }
     return { isValid: false, message: errorMessage };
   } else {
     return { isValid: true, message: null };

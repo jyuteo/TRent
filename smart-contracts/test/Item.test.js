@@ -6,19 +6,34 @@ const ItemContractCreator = artifacts.require("ItemContractCreator");
 const UserContractCreator = artifacts.require("UserContractCreator");
 const RentalContractCreator = artifacts.require("RentalContractCreator");
 const Item = artifacts.require("Item");
-const User = artifacts.require("User");
-const Rental = artifacts.require("Rental");
 const DateTime = artifacts.require("DateTime");
 const truffleAssert = require("truffle-assertions");
 
 const { accounts } = require("@openzeppelin/test-environment");
-const [ownerContractAddress, rentalContractAddress] = accounts;
+const [rentalContractAddress] = accounts;
 
 contract("Item contract", ([deployer, owner, renter]) => {
-  let itemContractCreator, item, itemContractAddress, itemDetails;
+  let itemContractCreator,
+    userContractCreator,
+    item,
+    itemContractAddress,
+    itemDetails,
+    ownerContractAddress;
 
   beforeEach(async () => {
+    userContractCreator = await UserContractCreator.new({ from: deployer });
     itemContractCreator = await ItemContractCreator.new({ from: deployer });
+
+    // create User contract for owner
+    await userContractCreator.createUserContract(
+      owner,
+      "owner",
+      "ownerDeliveryAddress",
+      {
+        from: owner,
+      }
+    );
+    ownerContractAddress = await userContractCreator.userContractForUser(owner);
 
     itemDetails = {
       ownerUserContract: ownerContractAddress,
@@ -89,26 +104,30 @@ contract("Item contract", ([deployer, owner, renter]) => {
       const start = await datetime.toTimestamp(2021, 8, 16);
       const end = await datetime.toTimestamp(2021, 8, 20);
 
-      await item.handleNewRental(rentalContractAddress, start, end, renter, {
-        from: renter,
-      });
+      await item.handleNewRental(
+        rentalContractAddress,
+        start * 1000,
+        end * 1000,
+        renter,
+        {
+          from: renter,
+        }
+      );
       expect(await item.rentalContracts(0)).to.be.equal(rentalContractAddress);
       expect(Number(await item.rentalContractCount())).to.eq(1);
 
       const rentalPeriod = await item.rentalPeriods(0);
-      expect(Number(rentalPeriod.start)).to.eq(Number(start));
-      expect(Number(rentalPeriod.end)).to.eq(Number(end));
+      expect(Number(rentalPeriod.start)).to.eq(Number(start * 1000));
+      expect(Number(rentalPeriod.end)).to.eq(Number(end * 1000));
     });
   });
 
   describe("Input rating", async () => {
-    let userContractCreator,
-      renterContractAddress,
+    let renterContractAddress,
       rentalContractCreator,
-      rentalContractAddress;
+      actualRentalContractAddress;
 
     beforeEach(async () => {
-      userContractCreator = await UserContractCreator.new({ from: deployer });
       rentalContractCreator = await RentalContractCreator.new({
         from: deployer,
       });
@@ -126,8 +145,6 @@ contract("Item contract", ([deployer, owner, renter]) => {
         renter
       );
 
-      // renter = await User.at(renterContractAddress)
-
       // create new Rental contract
       const response = await rentalContractCreator.createRentalContract(
         itemContractAddress,
@@ -136,8 +153,8 @@ contract("Item contract", ([deployer, owner, renter]) => {
         renter,
         10000,
         200,
-        1633442907,
-        1633529307,
+        1633442907000,
+        1633529307000,
         {
           from: renter,
           gas: 6000000,
@@ -148,11 +165,11 @@ contract("Item contract", ([deployer, owner, renter]) => {
 
       // event emitted after creation of Rental contract
       truffleAssert.eventEmitted(response, "rentalContractCreated", (ev) => {
-        rentalContractAddress = ev.rentalContract;
+        actualRentalContractAddress = ev.rentalContract;
         return (
           ev.itemContract === itemContractAddress &&
           ev.renterAddress === renter &&
-          ev.rentalContract === rentalContractAddress
+          ev.rentalContract === actualRentalContractAddress
         );
       });
     });

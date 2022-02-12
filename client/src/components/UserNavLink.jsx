@@ -18,7 +18,7 @@ const PopperContainer = styled.div`
   width: 350px;
   position: static;
   border-radius: 15px;
-  opacity: 0.9;
+  opacity: 0.96;
   box-shadow: 3px 5px 10px 3px #888888;
 `;
 

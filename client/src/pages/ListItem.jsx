@@ -16,7 +16,7 @@ import { uploadImageToIPFS } from "../services/ipfsServices/uploadImage";
 
 const Container = styled.div`
   width: 100%;
-  height: 90vh;
+  /* height: 90vh; */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -24,8 +24,9 @@ const Container = styled.div`
 `;
 
 const Wrapper = styled.div`
+  min-width: 500px;
   width: 30%;
-  padding: 20px;
+  padding: 10%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -121,9 +122,9 @@ const FieldError = styled.span`
 
 const SuccessContainer = styled.div`
   position: fixed;
-  top: 65px;
+  top: 0;
   width: 100%;
-  height: 950px;
+  height: 100%;
   display: ${(props) => (props.show ? "flex" : "none")};
   align-items: center;
   justify-content: center;

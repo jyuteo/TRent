@@ -35,11 +35,11 @@ contract Item {
     ItemStatus public itemStatus;
 
     address[] public rentalContracts;
-    uint8 public rentalContractCount;
+    uint128 public rentalContractCount;
     RentalStartEnd[] public rentalPeriods;
 
     address[] public renters;
-    uint8 public renterCount;
+    uint128 public renterCount;
     mapping(address => bool) public isRenter;
 
     uint8 public reviewCount;
@@ -81,6 +81,10 @@ contract Item {
 
     function getItemDetails() public view returns (Structs.ItemDetails memory) {
         return itemDetails;
+    }
+
+    function getOwnerUserContract() public view returns (address) {
+        return ownerUserContract;
     }
 
     function changeOwner(

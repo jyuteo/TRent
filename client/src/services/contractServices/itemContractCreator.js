@@ -39,7 +39,7 @@ export const createItemContract = async (
       gasPrice: 20000000000,
     });
 
-    itemContractCreator
+    newItemContractAddress = itemContractCreator
       .getPastEvents("itemContractCreated", {
         fromBlock: "latest",
       })

@@ -55,7 +55,7 @@ const userSlice = createSlice({
       console.log("[debug] login failed");
     },
     logoutSuccess: (state) => {
-      // state.currentUser = null;
+      state.currentUser = null;
       state.isFetchingLogin = false;
       state.loginSuccess = false;
       state.loginError = false;

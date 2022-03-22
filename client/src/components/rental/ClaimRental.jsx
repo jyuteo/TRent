@@ -2,7 +2,10 @@ import moment from "moment";
 import { useState } from "react";
 import styled from "styled-components";
 import { gweiToEth } from "../../helpers/mathUtils";
-import { claimRentalFeesAndSettleDeposit } from "../../services/contractServices/rentalContract";
+import {
+  claimRentalFeesAndSettleDeposit,
+  settleRentalAfterMaximumLateDays,
+} from "../../services/contractServices/rentalContract";
 
 const Container = styled.div`
   width: 100%;
@@ -49,6 +52,10 @@ const Right = styled.div`
   overflow: hidden;
 `;
 
+const WarningText = styled.span`
+  color: red;
+`;
+
 const ColoredText = styled.span`
   color: var(--dark-blue);
   margin: 0 5px;
@@ -76,9 +83,18 @@ const Error = styled.span`
 `;
 
 const ClaimRental = ({ rentalDetails, onClaimSuccess }) => {
+  console.log(rentalDetails);
   const [error, setErrorMessage] = useState("");
 
-  const handleClick = async (e) => {
+  const lateDays = Math.floor(
+    (Date.now() - parseInt(rentalDetails.end)) / 1000 / 60 / 60 / 24
+  );
+
+  // const lateDays = 2;
+
+  const maximumAllowableLateDays = 5;
+
+  const claimFeesAndSettleDeposit = async (e) => {
     try {
       await claimRentalFeesAndSettleDeposit(
         rentalDetails.rentalContractAddress,
@@ -91,48 +107,179 @@ const ClaimRental = ({ rentalDetails, onClaimSuccess }) => {
     }
   };
 
-  return rentalDetails.ownerClaimRentalFeesTimestamp > 0 ? (
-    <Container>
-      <Left>
-        {moment
-          .unix(rentalDetails.ownerClaimRentalFeesTimestamp)
-          .format("DD-MMM-YYYY, hh:mm A")}
-      </Left>
-      <Right>
-        <div>
-          Owner claimed rental fees of
-          <ColoredText>
-            {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
-          </ColoredText>
-          and settled deposit of
-          <ColoredText>
-            {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
-          </ColoredText>{" "}
-          for both owner and renter
-        </div>
-      </Right>
-    </Container>
+  const settleAllFeesAndDeposit = async (e) => {
+    try {
+      await settleRentalAfterMaximumLateDays(
+        rentalDetails.rentalContractAddress,
+        rentalDetails.ownerEthAccountAddress
+      );
+      onClaimSuccess();
+    } catch (err) {
+      setErrorMessage("Unable to claim rental fees");
+      return;
+    }
+  };
+
+  return parseInt(rentalDetails.ownerClaimRentalFeesTimestamp) > 0 ||
+    parseInt(rentalDetails.ownerSettleRentalAfterMaximumLateDaysTimestamp) >
+      0 ? (
+    parseInt(rentalDetails.ownerClaimRentalFeesTimestamp) > 0 ? (
+      <Container>
+        <Left>
+          {moment
+            .unix(rentalDetails.ownerClaimRentalFeesTimestamp)
+            .format("DD-MMM-YYYY, hh:mm A")}
+        </Left>
+        <Right>
+          <div>
+            Owner claimed rental fees of
+            <ColoredText>
+              {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
+            </ColoredText>
+            and settled deposit of
+            <ColoredText>
+              {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
+            </ColoredText>
+            for both owner and renter
+          </div>
+        </Right>
+      </Container>
+    ) : (
+      <Container>
+        <Left>
+          {moment
+            .unix(rentalDetails.ownerSettleRentalAfterMaximumLateDaysTimestamp)
+            .format("DD-MMM-YYYY, hh:mm A")}
+        </Left>
+        <Right>
+          <div>
+            Owner claimed rental fees of
+            <ColoredText>
+              {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
+            </ColoredText>
+            and renter deposit of
+            <ColoredText>
+              {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
+            </ColoredText>
+            and renter deposit of
+            <ColoredText>
+              {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
+            </ColoredText>
+          </div>
+        </Right>
+      </Container>
+    )
   ) : (
     <Container>
       <Left>N/A</Left>
-      {parseInt(rentalDetails.role) === 0 &&
-      parseInt(rentalDetails.rentalStatus) === 2 ? (
-        <Right type="active">
-          <div>
-            Owner to claim rental fees{" "}
-            <ColoredText>
-              {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
-            </ColoredText>{" "}
-            and settle deposit
-          </div>
-          <Button onClick={handleClick}>Claim rental fees now</Button>
-          {error && <Error>{error}</Error>}
-        </Right>
-      ) : (
-        <Right type="inactive">
-          Owner to claim rental fees and settle deposit
-        </Right>
-      )}
+      {
+        // owner
+        parseInt(rentalDetails.role) === 0 ? (
+          // returned
+          parseInt(rentalDetails.rentalStatus) === 2 ? (
+            <Right type="active">
+              <div>
+                Owner to claim rental fees
+                <ColoredText>
+                  {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
+                </ColoredText>
+                and settle deposit
+              </div>
+              <Button onClick={claimFeesAndSettleDeposit}>
+                Settle all fees now
+              </Button>
+              {error && <Error>{error}</Error>}
+            </Right>
+          ) : // not returned
+          parseInt(rentalDetails.rentalStatus) === 1 &&
+            lateDays > maximumAllowableLateDays ? (
+            // later than maximum late days
+            <Right type="active">
+              <div>
+                <WarningText>
+                  Renter is {lateDays} days to return item
+                </WarningText>
+                <br />
+                Owner can claim back owner deposit paid
+                <ColoredText>
+                  {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
+                </ColoredText>
+                <br />
+                Owner can claim rental fees paid
+                <ColoredText>
+                  {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
+                </ColoredText>
+                and renter deposit
+                <ColoredText>
+                  {gweiToEth(rentalDetails.renterDepositInGwei)} ETH
+                </ColoredText>
+              </div>
+              <Button onClick={settleAllFeesAndDeposit}>
+                Settle all fees now
+              </Button>
+              {error && <Error>{error}</Error>}
+            </Right>
+          ) : (
+            // not later than maximum late days
+            <Right type="inactive">
+              <div>
+                {lateDays > 0 && (
+                  <div>
+                    <WarningText>
+                      Renter is {lateDays} days late to return item
+                    </WarningText>
+                    <br />
+                  </div>
+                )}
+                Owner to claim rental fees and settle deposit
+                <br />
+                Owner can claim all rental fees, owner deposit and renter
+                deposit if item is not returned after {
+                  maximumAllowableLateDays
+                }{" "}
+                late days
+              </div>
+            </Right>
+          )
+        ) : // renter
+        parseInt(rentalDetails.rentalStatus) === 2 ? (
+          // returned
+          <Right type="inactive">
+            Owner to claim rental fees and settle deposit
+          </Right>
+        ) : // not returned
+        parseInt(rentalDetails.rentalStatus) === 1 &&
+          lateDays > maximumAllowableLateDays ? (
+          // later than maximum late days
+          <Right type="inactive">
+            <div>
+              <WarningText>
+                You are {lateDays} days late to return item
+              </WarningText>
+              <br />
+              Owner will claim all rental fees and deposit paid
+            </div>
+          </Right>
+        ) : (
+          // not later than maximum late days
+          <Right type="inactive">
+            <div>
+              {lateDays > 0 && (
+                <div>
+                  <WarningText>
+                    Renter is {lateDays} days late to return item
+                  </WarningText>
+                  <br />
+                </div>
+              )}
+              Owner to claim rental fees and settle deposit
+              <br />
+              Owner can claim all rental fees, owner deposit and renter deposit
+              if item is not returned after {maximumAllowableLateDays} late days
+            </div>
+          </Right>
+        )
+      }
     </Container>
   );
 };

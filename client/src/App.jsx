@@ -6,20 +6,20 @@ import useMetaMask from "./hooks/metamask";
 import Home from "./pages/Home";
 import Item from "./pages/Item";
 import ListItem from "./pages/ListItem";
+import Loading from "./pages/Loading";
 import Login from "./pages/Login";
 import MyRentals from "./pages/MyRentals";
+import NotConnectedToMetamask from "./pages/NotConnectedToMetamask";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Rental from "./pages/Rental";
 
 const App = () => {
   const user = useSelector((state) => state.user.currentUser);
   const isLogin = useSelector((state) => state.user.loginSuccess);
-
-  const { account, isLoading: isLoadingMetamask } = useMetaMask();
-
+  const { account, isLoading: isLoadingMetamask, isActive } = useMetaMask();
   const dispatch = useDispatch();
-
   const [isLoading, setIsLoading] = useState(true);
   const [isConnectedAndLoggedIn, setIsConnectedAndLoggedIn] = useState(false);
 
@@ -64,6 +64,13 @@ const App = () => {
           exact
           element={isLogin ? <Navigate to="/" /> : <Register />}
         />
+        {isLoading && <Route path="*" exact element={<Loading />} />}
+        {!isLoading &&
+          isLogin &&
+          isLoadingMetamask &&
+          !isConnectedAndLoggedIn && (
+            <Route path="*" exact element={<NotConnectedToMetamask />} />
+          )}
         {!isLoading && isConnectedAndLoggedIn && (
           <Route path="/" exact element={<Home />} />
         )}
@@ -82,6 +89,9 @@ const App = () => {
         )}
         {!isLoading && isConnectedAndLoggedIn && (
           <Route path="/my-rentals" exact element={<MyRentals />} />
+        )}
+        {!isLoading && isConnectedAndLoggedIn && (
+          <Route path="/profile/" exact element={<Profile />} />
         )}
         {!isLoading && isConnectedAndLoggedIn && (
           <Route path="*" element={<NotFound />} />

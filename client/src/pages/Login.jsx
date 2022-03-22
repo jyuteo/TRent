@@ -88,7 +88,7 @@ const WalletFieldButton = styled.div`
   border-radius: 8px;
   border: 1px solid white;
   padding: 4px 10px;
-  cursor: pointer;
+  cursor: ${(props) => (props.disabled ? "" : "pointer")};
   font-size: 14px;
   display: flex;
   justify-content: space-between;
@@ -202,8 +202,11 @@ const Login = () => {
                   to Metamask wallet
                 </WalletFieldInfo>
               ) : (
-                <WalletFieldButton onClick={async (e) => await connect(Web3)}>
-                  <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />{" "}
+                <WalletFieldButton
+                  disabled={account}
+                  onClick={async (e) => await connect(Web3)}
+                >
+                  <ReportProblem style={{ fontSize: 14, marginRight: 5 }} />
                   Click to connect wallet
                 </WalletFieldButton>
               )}

@@ -13,6 +13,7 @@ const Container = styled.div`
   border-radius: 5px;
   box-shadow: 1px 1px 5px 1px #ccc;
   overflow: hidden;
+  scrollbar-width: none;
 `;
 
 const Row = styled.div`
@@ -34,6 +35,7 @@ const Review = styled.textarea`
   font-size: 14px;
   padding: 5px 0;
   text-overflow: ellipsis;
+  scrollbar-width: none;
 
   &:focus {
     outline: none;

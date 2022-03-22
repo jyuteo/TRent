@@ -37,7 +37,7 @@ export const createRentalContract = async (
       .send({
         from: renterEthAccountAddress,
         gas: 6721974,
-        gasPrice: 20,
+        gasPrice: 20000000000,
         value: gweiToWei(renterDepositInGwei),
       });
 

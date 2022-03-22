@@ -9,6 +9,11 @@ const loadUserContract = async (userContractAddress) => {
   return new web3.eth.Contract(userContractABI, userContractAddress);
 };
 
+export const getUserDeliveryAddress = async (userContractAddress) => {
+  const userContract = await loadUserContract(userContractAddress);
+  return await userContract.methods.deliveryAddress().call();
+};
+
 export const getRentalDetailsFromRentalHistories = async (
   userContractAddress
 ) => {
@@ -63,5 +68,51 @@ export const getRentalDetailsFromRentalHistories = async (
       }
     });
     return { rentalsAsOwner, rentalsAsRenter };
+  });
+};
+
+export const getRentalDetailsForUser = async (userContractAddress) => {
+  const userContract = await loadUserContract(userContractAddress);
+  const rentalHistoryCount = parseInt(
+    await userContract.methods.rentalHistoryCount().call()
+  );
+
+  if (rentalHistoryCount === 0) {
+    return [];
+  }
+
+  return await Promise.all(
+    [...Array(rentalHistoryCount).keys()].map((i) =>
+      userContract.methods
+        .rentalHistories(i)
+        .call()
+        .then(
+          async ({
+            itemContract,
+            rentalContract,
+            ownerUserContract,
+            renterUserContract,
+            role,
+            start,
+            end,
+          }) => {
+            let itemDetails = await getItemDetails(itemContract);
+            let rentalDetails = {
+              itemContractAddress: itemContract,
+              rentalContractAddress: rentalContract,
+              ownerUserContractAddress: ownerUserContract,
+              renterUserContractAddress: renterUserContract,
+              role: role,
+              start: start,
+              end: end,
+              itemImageUrl: itemDetails.imageIPFSUrl[0],
+              itemName: itemDetails.name,
+            };
+            return rentalDetails;
+          }
+        )
+    )
+  ).then((rentalDetailsList) => {
+    return rentalDetailsList;
   });
 };

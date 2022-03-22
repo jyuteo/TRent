@@ -49,6 +49,10 @@ const Right = styled.div`
   overflow: hidden;
 `;
 
+const WarningText = styled.span`
+  color: red;
+`;
+
 const ColoredText = styled.span`
   color: var(--dark-blue);
   margin: 0 5px;
@@ -78,11 +82,25 @@ const Error = styled.span`
 const PayRental = ({ rentalDetails, onPaySuccess }) => {
   const [error, setErrorMessage] = useState("");
 
-  const handleClick = async (e) => {
+  const lateDays = Math.floor(
+    (Date.now() - parseInt(rentalDetails.end)) / 1000 / 60 / 60 / 24
+  );
+
+  const maximumAllowableLateDays = 5;
+
+  const payRentalAndLateFees = async (lateDays) => {
+    let feesToPay;
+    if (lateDays > 0) {
+      feesToPay =
+        parseInt(rentalDetails.rentalFeesInGwei) +
+        parseInt(rentalDetails.rentPerDayInGwei * lateDays);
+    } else {
+      feesToPay = rentalDetails.rentalFeesInGwei;
+    }
     try {
       await payRentalFeesIncludingLateFees(
         rentalDetails.rentalContractAddress,
-        rentalDetails.rentalFeesInGwei,
+        feesToPay,
         rentalDetails.renterEthAccountAddress
       );
       onPaySuccess();
@@ -100,12 +118,30 @@ const PayRental = ({ rentalDetails, onPaySuccess }) => {
           .format("DD-MMM-YYYY, hh:mm A")}
       </Left>
       <Right>
-        <div>
-          Renter paid rental fees of
-          <ColoredText>
-            {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
-          </ColoredText>
-        </div>
+        {parseInt(rentalDetails.rentalFeesPaidInGwei) >
+        parseInt(rentalDetails.rentalFeesInGwei) ? (
+          <div>
+            Renter paid rental fees of
+            <ColoredText>
+              {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
+            </ColoredText>
+            and late fees of
+            <ColoredText>
+              {gweiToEth(
+                parseInt(rentalDetails.rentalFeesPaidInGwei) -
+                  parseInt(rentalDetails.rentalFeesInGwei)
+              )}{" "}
+              ETH
+            </ColoredText>
+          </div>
+        ) : (
+          <div>
+            Renter paid rental fees of
+            <ColoredText>
+              {gweiToEth(rentalDetails.rentalFeesPaidInGwei)} ETH
+            </ColoredText>
+          </div>
+        )}
       </Right>
     </Container>
   ) : (
@@ -113,22 +149,73 @@ const PayRental = ({ rentalDetails, onPaySuccess }) => {
       <Left>N/A</Left>
       {parseInt(rentalDetails.rentalStatus) === 1 &&
       parseInt(rentalDetails.role) === 1 ? (
-        <Right type="active">
-          <div>
-            Renter to pay rental fees of
-            <ColoredText>
-              {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
-            </ColoredText>
-            by
-            <ColoredText>
-              {moment.unix(rentalDetails.end / 1000).format("DD-MMM-YYYY")}
-            </ColoredText>
-          </div>
-          <Button onClick={handleClick}>Pay rental fees now</Button>
-          {error && <Error>{error}</Error>}
-        </Right>
+        lateDays <= maximumAllowableLateDays ? (
+          <Right type="active">
+            {lateDays > 0 ? (
+              <div>
+                <WarningText>You are {lateDays} days late</WarningText> <br />
+                Renter to pay rental fees of
+                <ColoredText>
+                  {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
+                </ColoredText>
+                and <WarningText>late fees</WarningText> of
+                <ColoredText>
+                  {gweiToEth(rentalDetails.rentPerDayInGwei * lateDays)} ETH
+                </ColoredText>
+              </div>
+            ) : (
+              <div>
+                Renter to pay rental fees of
+                <ColoredText>
+                  {gweiToEth(rentalDetails.rentalFeesInGwei)} ETH
+                </ColoredText>
+                by
+                <ColoredText>
+                  {moment.unix(rentalDetails.end / 1000).format("DD-MMM-YYYY")}
+                </ColoredText>
+              </div>
+            )}
+            <Button onClick={(e) => payRentalAndLateFees(lateDays)}>
+              Pay rental fees now
+            </Button>
+            {error && <Error>{error}</Error>}
+          </Right>
+        ) : (
+          <Right type="inactive">
+            <div>
+              <WarningText>
+                You are {lateDays} days late to return item
+              </WarningText>
+              <br />
+              Owner is entitled to claim for all the deposit and rental fees you
+              paid
+            </div>
+          </Right>
+        )
       ) : (
-        <Right type="inactive">Renter to pay rental fees</Right>
+        <Right type="inactive">
+          {lateDays > 0 ? (
+            lateDays > maximumAllowableLateDays ? (
+              <div>
+                <WarningText>Renter is late for {lateDays} days</WarningText>
+                <p>
+                  Owner is entitled to claim for all the deposit and rental fees
+                  paid by renter
+                </p>
+              </div>
+            ) : (
+              <div>
+                <WarningText>Renter is late for {lateDays} days</WarningText>
+                <p>
+                  Renter to pay rental fees and late fees within{" "}
+                  {maximumAllowableLateDays} late days
+                </p>
+              </div>
+            )
+          ) : (
+            "Renter to pay rental fees"
+          )}
+        </Right>
       )}
     </Container>
   );

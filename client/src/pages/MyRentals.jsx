@@ -28,7 +28,7 @@ const Title = styled.h1`
 const Wrapper = styled.div`
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   margin: 10px 0;
   /* background-color: blue; */
 `;
@@ -39,7 +39,8 @@ const Left = styled.div`
   align-items: center;
   justify-content: start;
   width: 45%;
-  padding: 1%;
+  padding: 1% 0;
+  margin-right: 100px;
   /* background-color: blue; */
 `;
 
@@ -49,7 +50,7 @@ const Right = styled.div`
   align-items: center;
   justify-content: start;
   width: 45%;
-  padding: 1%;
+  padding: 1% 0;
 `;
 
 const ColumnTitle = styled.div`

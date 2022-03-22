@@ -12,6 +12,7 @@ import RentalPreview from "../components/rental/RentalPreview";
 import { getReviewForRental } from "../services/contractServices/itemContract";
 import { getRentalDetails } from "../services/contractServices/rentalContract";
 import ItemReview from "../components/rental/ItemReview";
+import ItemDeleted from "../components/rental/ItemDeleted";
 
 const MainContainer = styled.div`
   width: 100%;
@@ -37,6 +38,7 @@ const Rental = () => {
   const user = useSelector((state) => state.user.currentUser);
   const { rentalContractAddress } = useParams();
   const [rentalDetails, setRentalDetails] = useState();
+  const [itemStatus, setItemStatus] = useState();
   const [review, setReview] = useState();
 
   const updateRentalDetails = () => {
@@ -51,6 +53,7 @@ const Rental = () => {
         }
         // console.log(rentalDetails);
         setRentalDetails(rentalDetails);
+        setItemStatus(parseInt(rentalDetails.itemStatus));
       });
     }
   };
@@ -99,11 +102,15 @@ const Rental = () => {
               rentalDetails={rentalDetails}
               onClaimSuccess={updateRentalDetails}
             />
-            <ItemReview
-              review={review}
-              rentalDetails={rentalDetails}
-              onReviewSuccess={getReview}
-            />
+            {itemStatus !== 2 ? (
+              <ItemReview
+                review={review}
+                rentalDetails={rentalDetails}
+                onReviewSuccess={getReview}
+              />
+            ) : (
+              <ItemDeleted rentalDetails={rentalDetails} />
+            )}
           </Wrapper>
         </Container>
       )}

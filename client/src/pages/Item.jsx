@@ -21,6 +21,7 @@ import {
   getItemDetails,
   getItemRating,
   getItemReviews,
+  getItemStatus,
 } from "../services/contractServices/itemContract";
 import { createRentalContract } from "../services/contractServices/rentalContractCreator";
 
@@ -91,6 +92,7 @@ const ReviewContainer = styled.div`
   overflow-x: visible;
   /* background-color: #efefef; */
   border-radius: 10px;
+  scrollbar-width: none;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -107,12 +109,14 @@ const NoReview = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 90%;
-  margin-top: 2%;
-  padding: 5%;
+  width: 95%;
+  min-height: 80px;
+  margin-top: 10px 0;
+  padding: 10px;
   background-color: #f8f8f8;
   border-radius: 5px;
   box-shadow: 1px 1px 5px 1px #ccc;
+  overflow: hidden;
 `;
 
 const FieldTitle = styled.span`
@@ -193,7 +197,7 @@ const RightBottom = styled.div`
   /* background-color: red; */
 `;
 
-const OwnerNotice = styled.div`
+const UnableToRentNotice = styled.div`
   width: 90%;
   background-color: #f8f8f8;
   border-radius: 5px;
@@ -359,6 +363,7 @@ const Item = () => {
 
   const { itemContractAddress } = useParams();
   const [itemDetails, setItemDetails] = useState();
+  const [itemStatus, setItemStatus] = useState();
   const [rating, setRating] = useState(-1);
   const [reviews, setReviews] = useState([]);
   const [rentalPeriods, setRentalPeriods] = useState();
@@ -384,6 +389,9 @@ const Item = () => {
       });
       getItemRating(itemContractAddress).then((rate) => {
         setRating(rate);
+      });
+      getItemStatus(itemContractAddress).then((itemStatus) => {
+        setItemStatus(parseInt(itemStatus));
       });
       getItemReviews(itemContractAddress).then((reviews) => {
         setReviews(reviews);
@@ -570,7 +578,14 @@ const Item = () => {
                   <Divider />
                   {itemDetails.ownerUserContract ===
                   user.userContractAddress ? (
-                    <OwnerNotice>You are the owner of the item</OwnerNotice>
+                    <UnableToRentNotice>
+                      You are the owner of the item
+                    </UnableToRentNotice>
+                  ) : itemStatus === 2 ? (
+                    <UnableToRentNotice>
+                      Unable to rent <br />
+                      Item not returned by renter
+                    </UnableToRentNotice>
                   ) : (
                     <RentContainer>
                       <RentLeft>

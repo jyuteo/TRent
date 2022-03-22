@@ -14,6 +14,12 @@ export const getItemDetails = async (itemContractAddress) => {
   return itemDetails;
 };
 
+export const getItemStatus = async (itemContractAddress) => {
+  const itemContract = await loadItemContract(itemContractAddress);
+  const itemStatus = await itemContract.methods.itemStatus().call();
+  return itemStatus;
+};
+
 export const getItemRating = async (itemContractAddress) => {
   const itemContract = await loadItemContract(itemContractAddress);
   const ratingsSum = await itemContract.methods.getRatingsSum().call();

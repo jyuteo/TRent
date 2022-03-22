@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import { gweiToWei } from "../../helpers/mathUtils";
-import { getItemDetails } from "./itemContract";
+import { getItemDetails, getItemStatus } from "./itemContract";
 var web3 = new Web3(window.ethereum);
 
 const rentalContractJSON = require("./abis/Rental.json");
@@ -31,6 +31,7 @@ export const getRentalDetails = async (rentalContractAddress) => {
     .itemContract()
     .call();
   const itemDetails = await getItemDetails(itemContractAddress);
+  const itemStatus = await getItemStatus(itemContractAddress);
   const renterUserContractAddress = await rentalContract.methods
     .renterUserContractAddress()
     .call();
@@ -65,11 +66,16 @@ export const getRentalDetails = async (rentalContractAddress) => {
   const ownerClaimRentalFeesTimestamp = await rentalContract.methods
     .ownerClaimRentalFeesTimestamp()
     .call();
+  const ownerSettleRentalAfterMaximumLateDaysTimestamp =
+    await rentalContract.methods
+      .ownerSettleRentalAfterMaximumLateDaysTimestamp()
+      .call();
 
   let rentalDetails = {
     itemContractAddress: itemContractAddress,
     itemImageUrl: itemDetails.imageIPFSUrl[0],
     itemName: itemDetails.name,
+    itemStatus: itemStatus,
     rentalContractAddress: rentalContractAddress,
     ownerUserContractAddress: itemDetails.ownerUserContract,
     ownerEthAccountAddress: ownerEthAccountAddress,
@@ -93,6 +99,8 @@ export const getRentalDetails = async (rentalContractAddress) => {
       imageUrl: renterProofOfReturnImageUrl,
     },
     ownerClaimRentalFeesTimestamp: ownerClaimRentalFeesTimestamp,
+    ownerSettleRentalAfterMaximumLateDaysTimestamp:
+      ownerSettleRentalAfterMaximumLateDaysTimestamp,
   };
 
   return rentalDetails;
@@ -169,5 +177,19 @@ export const claimRentalFeesAndSettleDeposit = async (
       .send({ from: ownerEthAccountAddress });
   } catch (err) {
     console.log("Error in claiming rental fees: ", err);
+  }
+};
+
+export const settleRentalAfterMaximumLateDays = async (
+  rentalContractAddress,
+  ownerEthAccountAddress
+) => {
+  try {
+    const rentalContract = await loadRentalContract(rentalContractAddress);
+    await rentalContract.methods
+      .settleRentalAfterFiveLateDays()
+      .send({ from: ownerEthAccountAddress });
+  } catch (err) {
+    console.log("Error in settling all fees after maxiumum late days: ", err);
   }
 };

@@ -74,7 +74,7 @@ const ProofOfReturn = ({ rentalDetails, onUploadSuccess }) => {
     <Container>
       <Left>N/A</Left>
       {parseInt(rentalDetails.role) === 1 &&
-      rentalDetails.rentalFeesPaidInGwei === rentalDetails.rentalFeesInGwei ? (
+      rentalDetails.rentalFeesPaidInGwei >= rentalDetails.rentalFeesInGwei ? (
         <Right type="active">
           <UploadProofOfReturn
             renterEthAccountAddress={rentalDetails.renterEthAccountAddress}

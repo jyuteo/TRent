@@ -28,7 +28,7 @@ export const createUserContract = async (
       .send({
         from: ethAccountAddress,
         gas: 6721974,
-        gasPrice: 10000000000,
+        gasPrice: 20000000000,
       });
     const userContractAddress = await getUserContractAddress(ethAccountAddress);
     return userContractAddress;

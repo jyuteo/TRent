@@ -152,7 +152,6 @@ const AccountLinkItem = styled.div`
 const Navbar = () => {
   const user = useSelector((state) => state.user.currentUser);
   const isLogin = useSelector((state) => state.user.loginSuccess);
-  const { account } = useMetaMask();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
 

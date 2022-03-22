@@ -43,6 +43,7 @@ contract Rental {
     uint256 public renterPayRentalTimestamp;
     uint256 public renterUploadProofOfReturnTimestamp;
     uint256 public ownerClaimRentalFeesTimestamp;
+    uint256 public ownerSettleRentalAfterMaximumLateDaysTimestamp;
 
     event itemRented(
         address itemContract,
@@ -211,6 +212,6 @@ contract Rental {
         user.setAsDishonest();
         rentalStatus = RentalStatus.END;
 
-        ownerClaimRentalFeesTimestamp = block.timestamp;
+        ownerSettleRentalAfterMaximumLateDaysTimestamp = block.timestamp;
     }
 }

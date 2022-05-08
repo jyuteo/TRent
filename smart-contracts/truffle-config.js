@@ -23,10 +23,10 @@
 // const fs = require('fs');truffle console --network ropsten
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
-require('babel-register')
-require('babel-polyfill')
-require('dotenv').config()
-const HDWalletProvider = require('@truffle/hdwallet-provider')
+require("babel-register");
+require("babel-polyfill");
+require("dotenv").config();
+const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 module.exports = {
   /**
@@ -47,10 +47,10 @@ module.exports = {
     // options below to some value.
     //
     development: {
-      host: '127.0.0.1', // Localhost (default: none)
+      host: "127.0.0.1", // Localhost (default: none)
       port: 7545, //Ganache  // Standard Ethereum port (default: none)
-      network_id: '*', // Any network (default: none)
-      from: '0x8e8Eee6e9e37Ccdda5735E26260dbBD720440784',
+      network_id: "*", // Any network (default: none)
+      from: "0x8e8Eee6e9e37Ccdda5735E26260dbBD720440784",
       gas: 6721974, // Gas sent with each transaction (default: ~6700000)
       gasPrice: 20000000000,
     },
@@ -58,10 +58,20 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(process.env.MNEMONIC, process.env.ROPSTEN_URL),
       network_id: 3,
-      from: '0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E',
+      from: "0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E",
       skipDryRun: true,
       timeoutBlocks: 200,
       networkCheckTimeout: 999999,
+    },
+    rinkeby: {
+      provider: function () {
+        return HDWalletProvider(process.env.MNEMONIC, process.env.ROPSTEN_URL);
+      },
+      network_id: 4,
+      from: "0xd25225E0a8A2A3BB2523Ff5e2e74368EBEF5149E",
+      skipDryRun: true,
+      gas: 4500000,
+      gasPrice: 10000000000,
     },
     // Another network with more advanced options...
     // advanced: {
@@ -95,15 +105,15 @@ module.exports = {
     // timeout: 100000
   },
 
-  contracts_directory: './src/contracts/',
-  contracts_build_directory: './src/abis/',
+  contracts_directory: "./src/contracts/",
+  contracts_build_directory: "./src/abis/",
 
-  plugins: ['truffle-contract-size'],
+  plugins: ["truffle-contract-size"],
 
   // Configure your compilers
   compilers: {
     solc: {
-      version: '>=0.7.0 <0.9.0', // Fetch exact version from solc-bin (default: truffle's version)
+      version: ">=0.7.0 <0.9.0", // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       settings: {
         // See the solidity docs for advice about optimization and evmVersion
@@ -116,4 +126,4 @@ module.exports = {
       },
     },
   },
-}
+};

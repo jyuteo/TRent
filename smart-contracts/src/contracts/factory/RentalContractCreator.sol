@@ -4,6 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "../Rental.sol";
 import "../Item.sol";
+import "../User.sol";
 import "../helpers/Structs.sol";
 import "../helpers/Utils.sol";
 
@@ -11,7 +12,7 @@ contract RentalContractCreator {
     using Utils for *;
 
     address[] public rentalContracts;
-    uint8 public rentalContractCount;
+    uint128 public rentalContractCount;
 
     event rentalContractCreated(
         address rentalContract,
@@ -38,6 +39,13 @@ contract RentalContractCreator {
             "Value transfered is not equal required amount"
         );
 
+        Item item = Item(_itemContract);
+
+        require(
+            validateRentalStartEnd(item, _start, _end),
+            "Selected rental period is not available"
+        );
+
         Rental newRentalContract = (new Rental){value: msg.value}(
             _itemContract,
             _itemDetails,
@@ -52,7 +60,6 @@ contract RentalContractCreator {
         rentalContracts.push(address(newRentalContract));
         rentalContractCount++;
 
-        Item item = Item(_itemContract);
         item.handleNewRental(
             address(newRentalContract),
             _start,
@@ -60,10 +67,58 @@ contract RentalContractCreator {
             _renterAddress
         );
 
+        address ownerUserContract = item.getOwnerUserContract();
+        User owner = User(ownerUserContract);
+        owner.addNewLending(
+            _itemContract,
+            address(newRentalContract),
+            ownerUserContract,
+            _renterUserContract,
+            _start,
+            _end
+        );
+
+        User renter = User(_renterUserContract);
+        renter.addNewBorrowing(
+            _itemContract,
+            address(newRentalContract),
+            ownerUserContract,
+            _renterUserContract,
+            _start,
+            _end
+        );
+
         emit rentalContractCreated(
             address(newRentalContract),
             _itemContract,
             _renterAddress
         );
+    }
+
+    function validateRentalStartEnd(
+        Item _item,
+        uint256 _start,
+        uint256 _end
+    ) private view returns (bool) {
+        uint128 rentalCount = _item.rentalContractCount();
+        for (uint128 i = 0; i < rentalCount; i++) {
+            (uint256 rentalStart, uint256 rentalEnd) = _item.rentalPeriods(i);
+            uint256 maxStart;
+            uint256 minEnd;
+            if (rentalStart > _start) {
+                maxStart = rentalStart;
+            } else {
+                maxStart = _start;
+            }
+            if (rentalEnd > _end) {
+                minEnd = _end;
+            } else {
+                minEnd = rentalEnd;
+            }
+            if (maxStart <= minEnd) {
+                return false;
+            }
+        }
+        return true;
     }
 }

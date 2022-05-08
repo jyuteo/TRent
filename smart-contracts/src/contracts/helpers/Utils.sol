@@ -46,7 +46,7 @@ library Utils {
         returns (uint256)
     {
         uint256 secondsBetween = _time2 - _time1;
-        uint256 daysBetween = secondsBetween / 60 / 60 / 24;
+        uint256 daysBetween = 1 + secondsBetween / 1000 / 60 / 60 / 24;
         return daysBetween;
     }
 

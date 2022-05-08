@@ -29,14 +29,21 @@ contract Rental {
     uint256 public renterDeposit;
     uint256 public start;
     uint256 public end;
-    string[] public renterProofOfReturn; // IPFS hashes
+    string public renterProofOfReturn; // IPFS
 
     uint256 public rentalFees;
     uint256 public rentalFeesPaid;
 
     address payable public ownerAddress;
     uint256 public ownerDeposit;
-    string[] public ownerProofOfTransfer; // IPFS hashes
+    string public ownerProofOfTransfer; // IPFS
+
+    uint256 public renterCreateRentalContractTimestamp;
+    uint256 public ownerUploadProofOfTransferTimestamp;
+    uint256 public renterPayRentalTimestamp;
+    uint256 public renterUploadProofOfReturnTimestamp;
+    uint256 public ownerClaimRentalFeesTimestamp;
+    uint256 public ownerSettleRentalAfterMaximumLateDaysTimestamp;
 
     event itemRented(
         address itemContract,
@@ -79,6 +86,8 @@ contract Rental {
         end = _end;
 
         rentalFees = _rentalFees;
+
+        renterCreateRentalContractTimestamp = block.timestamp;
     }
 
     modifier onlyOwner() {
@@ -104,7 +113,7 @@ contract Rental {
     }
 
     function uploadOwnerProofOfTransferAndPayDeposit(
-        string[] memory _ownerProofOfTransfer,
+        string memory _ownerProofOfTransfer,
         uint256 _ownerDeposit
     ) public payable onlyOwner {
         require(
@@ -120,10 +129,12 @@ contract Rental {
         ownerProofOfTransfer = _ownerProofOfTransfer;
         rentalStatus = RentalStatus.RENTED;
 
+        ownerUploadProofOfTransferTimestamp = block.timestamp;
+
         emit itemRented(itemContract, renterAddress, ownerAddress);
     }
 
-    function uploadRenterProofOfReturn(string[] memory _renterProofOfReturn)
+    function uploadRenterProofOfReturn(string memory _renterProofOfReturn)
         public
         onlyRenter
     {
@@ -134,6 +145,8 @@ contract Rental {
 
         renterProofOfReturn = _renterProofOfReturn;
         rentalStatus = RentalStatus.RETURNED;
+
+        renterUploadProofOfReturnTimestamp = block.timestamp;
 
         emit itemReturned(itemContract, renterAddress, ownerAddress);
     }
@@ -156,6 +169,8 @@ contract Rental {
             "Invalid rental status for method"
         );
 
+        renterPayRentalTimestamp = block.timestamp;
+
         rentalFeesPaid += _amount;
     }
 
@@ -177,6 +192,8 @@ contract Rental {
         assert(address(this).balance == 0);
         rentalStatus = RentalStatus.END;
 
+        ownerClaimRentalFeesTimestamp = block.timestamp;
+
         emit rentalEnded(itemContract, address(this));
     }
 
@@ -194,5 +211,7 @@ contract Rental {
         User user = User(renterUserContractAddress);
         user.setAsDishonest();
         rentalStatus = RentalStatus.END;
+
+        ownerSettleRentalAfterMaximumLateDaysTimestamp = block.timestamp;
     }
 }

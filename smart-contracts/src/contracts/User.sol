@@ -14,24 +14,24 @@ contract User {
     struct RentalHistory {
         address itemContract; // address of the deployed smart contract for the item
         address rentalContract; // address of the deployed rental contract
-        Role role;
+        address ownerUserContract;
+        address renterUserContract;
+        Role role; // 0 for owner, 1 for renter
         bool hasRated; // rate the opposite role in the contact
         uint256 start; // Unix epoch time
         uint256 end; // Unix epoch time
     }
 
-    mapping(address => uint8) public rentalIndexInRentalHistory;
+    mapping(address => uint128) public rentalIndexInRentalHistory;
 
     address public userAddress;
     string public username;
     string public deliveryAddress;
 
     RentalHistory[] public rentalHistories;
-    uint8 public rentalHistoryCount;
-    // Review[] public reviews;
-    // uint8 public reviewCount;
-    uint8 public lendingCount;
-    uint8 public borrowingCount;
+    uint128 public rentalHistoryCount;
+    uint128 public lendingCount;
+    uint128 public borrowingCount;
     bool public isDishonestUser;
 
     event usernameChanged(address indexed userAddress, string newUsername);
@@ -50,7 +50,6 @@ contract User {
         deliveryAddress = _deliveryAddress;
 
         rentalHistoryCount = 0;
-        // reviewCount = 0;
         lendingCount = 0;
         borrowingCount = 0;
         isDishonestUser = false;
@@ -95,12 +94,16 @@ contract User {
     function addNewLending(
         address _item,
         address _rental,
+        address _ownerUserContract,
+        address _renterUserContract,
         uint256 _start,
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
             itemContract: _item,
             rentalContract: _rental,
+            ownerUserContract: _ownerUserContract,
+            renterUserContract: _renterUserContract,
             role: Role.OWNER,
             hasRated: false,
             start: _start,
@@ -117,12 +120,16 @@ contract User {
     function addNewBorrowing(
         address _item,
         address _rental,
+        address _ownerUserContract,
+        address _renterUserContract,
         uint256 _start,
         uint256 _end
     ) public {
         RentalHistory memory history = RentalHistory({
             itemContract: _item,
             rentalContract: _rental,
+            ownerUserContract: _ownerUserContract,
+            renterUserContract: _renterUserContract,
             role: Role.RENTER,
             hasRated: false,
             start: _start,

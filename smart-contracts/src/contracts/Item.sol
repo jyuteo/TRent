@@ -35,11 +35,11 @@ contract Item {
     ItemStatus public itemStatus;
 
     address[] public rentalContracts;
-    uint8 public rentalContractCount;
+    uint128 public rentalContractCount;
     RentalStartEnd[] public rentalPeriods;
 
     address[] public renters;
-    uint8 public renterCount;
+    uint128 public renterCount;
     mapping(address => bool) public isRenter;
 
     uint8 public reviewCount;
@@ -81,6 +81,10 @@ contract Item {
 
     function getItemDetails() public view returns (Structs.ItemDetails memory) {
         return itemDetails;
+    }
+
+    function getOwnerUserContract() public view returns (address) {
+        return ownerUserContract;
     }
 
     function changeOwner(
@@ -164,18 +168,14 @@ contract Item {
         );
     }
 
-    function changeItemMediaIPFSHashes(string[] memory _newMediaIPFSHashes)
+    function changeItemImageIPFSUrl(string[] memory _newimageIPFSUrl)
         public
         onlyOwner
     {
-        itemDetails.mediaIPFSHashes = _newMediaIPFSHashes;
-        string memory newMediaIPFSHashes = "newMediaHashes";
+        itemDetails.imageIPFSUrl = _newimageIPFSUrl;
+        string memory newImageIPFSUrl = "newImageIPFSUrl";
 
-        emit itemDetailsChanged(
-            address(this),
-            "mediaIPFSHashes",
-            newMediaIPFSHashes
-        );
+        emit itemDetailsChanged(address(this), "imageIPFSUrl", newImageIPFSUrl);
     }
 
     function handleNewRental(

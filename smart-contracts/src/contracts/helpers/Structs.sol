@@ -7,12 +7,12 @@ library Structs {
         address ownerUserContract;
         address payable ownerAddress;
         string name;
-        string collectionOrReturnAddress;
         string description;
+        string collectionOrReturnAddress;
         uint256 rentPerDay; // in gwei
         uint8 maxAllowableLateDays;
         uint8 multipleForLateFees;
         bool isAvailableForRent;
-        string[] mediaIPFSHashes;
+        string[] imageIPFSUrl;
     }
 }

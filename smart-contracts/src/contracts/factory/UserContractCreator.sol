@@ -6,7 +6,7 @@ import "../User.sol";
 
 contract UserContractCreator {
     address[] private userContracts;
-    uint256 private userCount;
+    uint128 private userCount;
 
     // map user address to User contract
     mapping(address => address) public userContractForUser;

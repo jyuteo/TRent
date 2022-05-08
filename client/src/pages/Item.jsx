@@ -455,10 +455,9 @@ const Item = () => {
             isAvaliable: false,
             message: "Selected date is not available for rent.",
           };
-        } else {
-          return { isAvailable: true, message: "" };
         }
       }
+      return { isAvailable: true, message: "" };
     } else {
       return { isAvailable: true, message: "" };
     }

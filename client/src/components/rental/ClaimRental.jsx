@@ -90,7 +90,7 @@ const ClaimRental = ({ rentalDetails, onClaimSuccess }) => {
     (Date.now() - parseInt(rentalDetails.end)) / 1000 / 60 / 60 / 24
   );
 
-  // const lateDays = 2;
+  // const lateDays = 10;
 
   const maximumAllowableLateDays = 5;
 

@@ -86,6 +86,8 @@ const PayRental = ({ rentalDetails, onPaySuccess }) => {
     (Date.now() - parseInt(rentalDetails.end)) / 1000 / 60 / 60 / 24
   );
 
+  // const lateDays = 20;
+
   const maximumAllowableLateDays = 5;
 
   const payRentalAndLateFees = async (lateDays) => {
